@@ -85,10 +85,10 @@ public class KafkaSourceConfiguration extends KafkaConfiguration {
                     KAFKA_START_TIME, KAFKA_START_DATE));
         }
 
-        if (this.startTime < (TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis()) - MAX_KAFKA_LOOKBACK_SEC)) {
-            log.error("Invalid Kafka start time/date ({})  - please specify a more recent start time.", this.startTime);
-            throw new RuntimeException("Invalid kafka start time/date");
-        }
+//        if (this.startTime < (TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis()) - MAX_KAFKA_LOOKBACK_SEC)) {
+//            log.error("Invalid Kafka start time/date ({})  - please specify a more recent start time.", this.startTime);
+//            throw new RuntimeException("Invalid kafka start time/date");
+//        }
     }
 
     public List<String> getMandatoryProperties() {
