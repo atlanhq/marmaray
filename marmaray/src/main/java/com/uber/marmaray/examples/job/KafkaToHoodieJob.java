@@ -136,14 +136,8 @@ public class KafkaToHoodieJob {
         new KafkaToHoodieJob().run(args);
     }
 
-    /**
-     * Main execution method for the job.
-     *
-     * @param args command line arguments
-     * @throws IOException
-     */
-    private void run(final String[] args) throws IOException {
-//        final String schema = "{\"namespace\": \"example.avro\", \"type\": \"record\", \"name\": \"Record\", \"fields\": [{\"name\": \"Region\", \"type\": \"string\"}, {\"name\": \"Country\", \"type\": \"string\"}] }";
+    private void _run (final String[] args) throws IOException {
+        //        final String schema = "{\"namespace\": \"example.avro\", \"type\": \"record\", \"name\": \"Record\", \"fields\": [{\"name\": \"Region\", \"type\": \"string\"}, {\"name\": \"Country\", \"type\": \"string\"}] }";
 //        final Schema schemaObj = new org.apache.avro.Schema.Parser().parse(schema);
 //        final GenericData.Record record = new GenericData.Record(schemaObj);
 //        record.put("Region", "Sub-Saharan Africa");
@@ -288,6 +282,30 @@ public class KafkaToHoodieJob {
             reporters.finish();
         } finally {
             jsc.stop();
+            JobManager.reset();
+        }
+    }
+
+    /**
+     * Main execution method for the job.
+     *
+     * @param args command line arguments
+     * @throws IOException
+     */
+    private void run(final String[] args) throws IOException {
+        while (true) {
+            try {
+                this._run(args);
+            }
+            catch (Exception e){
+                log.error(e.toString());
+            }
+            try {
+                log.info("=========================sleeping======================");
+                Thread.sleep(10000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         }
     }
 
