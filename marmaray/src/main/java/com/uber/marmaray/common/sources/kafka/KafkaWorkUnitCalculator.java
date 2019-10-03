@@ -247,10 +247,25 @@ public class KafkaWorkUnitCalculator implements IWorkUnitCalculator<OffsetRange,
                 pendingPartitions--;
             }
             if (numMsgsToBeSelected > 0) {
+                long startOffset = partitionStartOffsets.get(m.getTopicPartition().partition());
+                long endOffset = startOffset + numMsgsToBeSelected;
+                log.error("xyzzzz {} {}", startOffset, endOffset);
+                if (endOffset > m.messages) {
+                    log.error("=================================");
+                    log.error("====Offset is higher than total messages, resetting======");
+                    log.error("=================================");
+                    endOffset = m.messages;
+                }
+                if (startOffset == endOffset) {
+                    log.error("============continue xyzzz=====================");
+                    continue;
+                }
                 offsetRanges.add(OffsetRange.create(m.getTopicPartition(),
-                        partitionStartOffsets.get(m.getTopicPartition().partition()),
-                        partitionStartOffsets.get(m.getTopicPartition().partition()) + numMsgsToBeSelected));
+                        startOffset, endOffset));
             }
+        }
+        if (offsetRanges.isEmpty()) {
+            throw new JobRuntimeException("Sorry no offset ranges available to ingest data");
         }
         return offsetRanges;
     }
