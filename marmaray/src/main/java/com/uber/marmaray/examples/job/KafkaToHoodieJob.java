@@ -19,6 +19,7 @@ import com.uber.marmaray.common.metrics.LongMetric;
 import com.uber.marmaray.common.metrics.ModuleTagNames;
 import com.uber.marmaray.common.metrics.TimerMetric;
 import com.uber.marmaray.common.reporters.ConsoleReporter;
+import com.uber.marmaray.common.reporters.PrometheusReporter;
 import com.uber.marmaray.common.reporters.Reporters;
 import com.uber.marmaray.common.sinks.hoodie.HoodieSink;
 import com.uber.marmaray.common.sources.ISource;
@@ -157,7 +158,7 @@ public class KafkaToHoodieJob {
         final Configuration conf = getConfiguration(args);
 
         final Reporters reporters = new Reporters();
-        reporters.addReporter(new ConsoleReporter());
+        reporters.addReporter(new PrometheusReporter(conf));
 
         final Map<String, String> metricTags = Collections.emptyMap();
         final DataFeedMetrics dataFeedMetrics = new DataFeedMetrics("kafka to hoodie ingestion", metricTags);
