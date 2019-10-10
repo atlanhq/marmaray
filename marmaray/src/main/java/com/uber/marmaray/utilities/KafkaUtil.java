@@ -32,15 +32,13 @@ import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.TopicPartition;
 import org.hibernate.validator.constraints.NotEmpty;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * {@link KafkaUtil} provides utility methods for interacting with Kafka
@@ -184,10 +182,24 @@ public final class KafkaUtil {
                     }
                 }
             }
+//            if (!topicPartitions.containsKey(topicName)) {
+//                throw new JobRuntimeException("topic is not found :" + topicName);
+//            }
+            Map<String, List<PartitionInfo>> fetchedTopics = new HashMap<>();
             if (!topicPartitions.containsKey(topicName)) {
-                throw new JobRuntimeException("topic is not found :" + topicName);
+                for (Map.Entry<String, List<PartitionInfo>> topic : KafkaUtil.topicPartitions.entrySet()) {
+                    String name = topic.getKey();
+                    if (Pattern.matches(topicName, name)) {
+                        fetchedTopics.put(name, topic.getValue());
+                    }
+                }
             }
-            final List<PartitionInfo> partitions = topicPartitions.get(topicName);
+            final Collection<List<PartitionInfo>> sbb = fetchedTopics.values();
+
+            final List<PartitionInfo> partitions = sbb.stream()
+                    .flatMap(List::stream)
+                    .collect(Collectors.toList());
+
             final Set<TopicPartition> topicPartitionSet = new HashSet<>();
             partitions.forEach(
                 p -> {
