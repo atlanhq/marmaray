@@ -73,6 +73,7 @@ public class ForkOperator<DI> implements Serializable {
         // Converts JavaRDD<T> -> JavaRDD<List<Integer>, T>
         JavaRDD<ForkData<DI>> forkedData = this.inputRDD.flatMap(this.forkFunction)
             .persist(this.persistLevel);
+//        List<ForkData<DI>> fdtemp = forkedData.collect();
         final String jobName = SparkJobTracker.getJobName(this.inputRDD.rdd().sparkContext());
         forkedData.setName(String.format("%s-%s", jobName, forkedData.id()));
         // deliberately calling count so that DAG gets executed.

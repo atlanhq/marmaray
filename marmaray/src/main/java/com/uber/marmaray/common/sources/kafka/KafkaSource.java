@@ -19,6 +19,10 @@ package com.uber.marmaray.common.sources.kafka;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
+import com.google.common.primitives.Bytes;
+import org.apache.avro.io.BinaryData;
+import org.apache.kafka.common.serialization.ByteArrayDeserializer;
+import org.apache.avro.file.DataFileReader;
 import com.uber.marmaray.common.AvroPayload;
 import com.uber.marmaray.common.configuration.KafkaConfiguration;
 import com.uber.marmaray.common.configuration.KafkaSourceConfiguration;
@@ -28,6 +32,7 @@ import com.uber.marmaray.common.metrics.DataFeedMetrics;
 import com.uber.marmaray.common.metrics.JobMetrics;
 import com.uber.marmaray.common.sources.ISource;
 import com.uber.marmaray.common.sources.kafka.KafkaWorkUnitCalculator.KafkaWorkUnitCalculatorResult;
+import com.uber.marmaray.common.data.BinaryRawData;
 import com.uber.marmaray.utilities.KafkaUtil;
 import com.uber.marmaray.utilities.LongAccumulator;
 import lombok.AllArgsConstructor;
@@ -55,15 +60,8 @@ import scala.collection.Seq;
 import scala.collection.mutable.ArrayBuffer;
 import scala.reflect.ClassTag$;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Queue;
-import java.util.TreeMap;
+import java.io.*;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -136,6 +134,36 @@ public class KafkaSource implements ISource<KafkaWorkUnitCalculatorResult, Kafka
         final JavaRDD<byte[]> kafkaDataRead = isParallelBrokerReadEnabled(numPartitions)
             ? readWithMultiReaderPerPartition(workUnits, kafkaPartitionOffsetToSparkPartitionMap)
             : readWithOneReaderPerPartition(workUnits, readParallelism, kafkaPartitionOffsetToSparkPartitionMap);
+//        final List<byte []> kafkatemp = kafkaDataRead.collect();
+//        for (byte [] k: kafkatemp) {
+//            Object obj = null;
+//            ByteArrayInputStream bis = null;
+//            ObjectInputStream ois = null;
+//            try {
+//                bis = new ByteArrayInputStream(k);
+//                ois = new ObjectInputStream(bis);
+//                obj = (HashMap<String, byte[]>) ois.readObject();
+//            } catch (IOException e) {
+//                e.printStackTrace();
+//            } catch (ClassNotFoundException e) {
+//                e.printStackTrace();
+//            } finally {
+//                if (bis != null) {
+//                    try {
+//                        bis.close();
+//                    } catch (IOException e) {
+//                        e.printStackTrace();
+//                    }
+//                }
+//                if (ois != null) {
+//                    try {
+//                        ois.close();
+//                    } catch (IOException e) {
+//                        e.printStackTrace();
+//                    }
+//                }
+//            }
+//        }
         final JavaRDD<byte[]> kafkaData = kafkaDataRead.map(val -> {
                 totalDataReadInBytes.add((long) val.length);
                 return val;
@@ -217,14 +245,25 @@ public class KafkaSource implements ISource<KafkaWorkUnitCalculatorResult, Kafka
                 }
             }
         }
-        return readKafkaData(newWorkUnits).map(e -> e.value());
+
+        JavaRDD<ConsumerRecord<byte[], byte[]>> kafkaStreamRecord = readKafkaData(newWorkUnits);
+
+        // this doesn't work right now
+        // return readKafkaData(newWorkUnits).map(e -> e.value());
+        return kafkaStreamRecord.map(consumerRecord -> {
+            HashMap<String, byte[]> rec = new HashMap<>();
+            rec.put(consumerRecord.topic(), consumerRecord.value());
+            return rec.toString().getBytes();
+        });
     }
 
     public JavaRDD<byte[]> readWithOneReaderPerPartition(
         @NonNull final List<OffsetRange> workUnits,
         final int readParallelism,
         @NonNull final Map<Integer, TreeMap<Long, Integer>> kafkaPartitionOffsetToSparkPartitionMap) {
-        return readKafkaData(workUnits)
+        ByteArrayDeserializer bs = new ByteArrayDeserializer();
+
+        final JavaRDD<byte []> temp = readKafkaData(workUnits)
             .mapToPair(
                 new PairFunction<ConsumerRecord<byte[], byte[]>, Integer, byte[]>() {
                     int lastSparkPartition = -1;
@@ -239,7 +278,24 @@ public class KafkaSource implements ISource<KafkaWorkUnitCalculatorResult, Kafka
                             log.info("starting new spark partition == kafkaPartition:{} offset:{} sparkPartition:{}",
                                 v.partition(), v.offset(), sparkPartition);
                         }
-                        return new Tuple2<>(sparkPartition, v.value());
+//                        byte[] c = Bytes.concat(v.value(), v.topic().getBytes());
+//                        final String tt = new String(c);
+//                        log.error("Hello ccvvc: " +tt);
+
+//                        byte[] array = v.value();
+//                        String x = "";
+//                        for(int i = 0; i < array.length; i++) //                            x += String.valueOf((char) array[i]);
+//                        }
+                        HashMap<String, byte[]> rec = new HashMap<>();
+                        rec.put(v.topic(), v.value());
+                        byte[] bytes = null;
+                        try (ByteArrayOutputStream bos = new ByteArrayOutputStream();
+                             ObjectOutputStream oos = new ObjectOutputStream(bos)) {
+                            oos.writeObject(rec);
+                            oos.flush();
+                            bytes = bos.toByteArray();
+                        }
+                        return new Tuple2<>(sparkPartition, bytes);
                     }
                 }
             ).partitionBy(
@@ -255,6 +311,7 @@ public class KafkaSource implements ISource<KafkaWorkUnitCalculatorResult, Kafka
                     }
                 })
             .values();
+        return temp;
     }
 
     @VisibleForTesting

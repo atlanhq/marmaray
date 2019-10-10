@@ -38,6 +38,7 @@ import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericDatumReader;
+import org.apache.avro.util.Utf8;
 import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -46,10 +47,13 @@ import org.apache.spark.sql.SQLContext;
 import org.hibernate.validator.constraints.NotEmpty;
 import parquet.Preconditions;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -82,10 +86,42 @@ class KafkaSchemaServiceReader implements ISchemaService.ISchemaServiceReader, S
 
     @Override
     public GenericRecord read(final byte[] buffer) throws InvalidDataException {
-        final DatumReader<GenericRecord> datumReader = new GenericDatumReader<>(getSchema());
-        BinaryDecoder decoder = DecoderFactory.get().binaryDecoder(buffer, null);
+
+        HashMap<String, byte[]> obj = null;
+        ByteArrayInputStream bis = null;
+        ObjectInputStream ois = null;
         try {
-            return datumReader.read(null, decoder);
+            bis = new ByteArrayInputStream(buffer);
+            ois = new ObjectInputStream(bis);
+            obj = (HashMap<String, byte[]>) ois.readObject();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        } finally {
+            if (bis != null) {
+                try {
+                    bis.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            if (ois != null) {
+                try {
+                    ois.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+        Map.Entry<String, byte[]> entry = obj.entrySet().iterator().next();
+        final DatumReader<GenericRecord> datumReader = new GenericDatumReader<>(getSchema());
+        BinaryDecoder decoder = DecoderFactory.get().binaryDecoder(entry.getValue(), null);
+
+        try {
+            GenericRecord rec = datumReader.read(null, decoder);
+            rec.put("_atlan_table_group_key", new Utf8(entry.getKey()));
+            return rec;
         } catch (IOException e) {
             throw new InvalidDataException("Error decoding data", e);
         }
@@ -196,7 +232,7 @@ public class KafkaToHoodieJob {
 //        final DataFrameSchemaConverter schemaConverter = new DataFrameSchemaConverter();
 //        final Schema outputSchema = schemaConverter.convertToCommonSchema(inputSchema);
 
-        final String schema = "{\"namespace\": \"example.avro\", \"type\": \"record\", \"name\": \"Record\", \"fields\": [{\"name\": \"Region\", \"type\": \"string\"}, {\"name\": \"Country\", \"type\": \"string\"}] }";
+        final String schema = "{\"namespace\": \"example.avro\", \"type\": \"record\", \"name\": \"Record\", \"fields\": [{\"name\": \"Region\", \"type\": \"string\"}, {\"name\": \"Country\", \"type\": \"string\"}, {\"name\": \"_atlan_table_group_key\", \"type\": \"null\", \"default\" : \"okay\"}] }";
         final Schema outputSchema = new org.apache.avro.Schema.Parser().parse(schema);
         convertSchemaLatencyMs.stop();
         reporters.report(convertSchemaLatencyMs);
