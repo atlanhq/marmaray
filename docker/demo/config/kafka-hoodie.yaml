@@ -1,0 +1,33 @@
+spark_properties:
+  spark:
+    master: local
+marmaray:
+  kafka:
+    conn:
+      bootstrap.servers: kafkabroker:9092
+      auto.offset.reset: earliest
+      group.id: marmaray
+    source:
+      cluster_name: "demo_cluster"
+      topic_name: "stock_ticks"
+      start_date: "2019-10-09"
+  lock_manager:
+    is_enabled: false
+    zk_base_path: /tmp/hoodie/no-op
+  hoodie:
+    tables:
+      stock_ticks_mor:
+        table_name: stock_ticks_mor
+        base_path: /tmp/hoodie/stock_ticks_mor
+        schema: "{\"type\":\"record\",\"name\":\"stock_ticks\",\"fields\":[{\"name\":\"volume\",\"type\":\"long\"},{\"name\":\"ts\",\"type\":\"string\"},{\"name\":\"symbol\",\"type\":\"string\"},{\"name\":\"year\",\"type\":\"int\"},{\"name\":\"month\",\"type\":\"string\"},{\"name\":\"high\",\"type\":\"double\"},{\"name\":\"low\",\"type\":\"double\"},{\"name\":\"key\",\"type\":\"string\"},{\"name\":\"date\",\"type\":\"string\"},{\"name\":\"close\",\"type\":\"double\"},{\"name\":\"open\",\"type\":\"double\"},{\"name\":\"day\",\"type\":\"string\"}]}"
+        record_key: "key"
+        partition_path: "date"
+        sink_op: "UPSERT"
+        metrics_prefix: stock_ticks
+        bulkinsert_parallelism: 2
+        insert_parallelism: 2
+        upsert_parallelism: 2
+        enable_metrics: false
+        rollback_inflight_commits: true
+  error_table:
+    enabled: false

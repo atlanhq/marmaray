@@ -100,7 +100,7 @@ public class KafkaToHoodieJob {
         try {
             hadoopConf = new HadoopConfiguration(conf);
             kafkaSourceConf = new KafkaSourceConfiguration(conf);
-            hoodieConf = new HoodieConfiguration(conf, "test_hoodie");
+            hoodieConf = new HoodieConfiguration(conf, "stock_ticks_mor");
         } catch (final Exception e) {
             final LongMetric configError = new LongMetric(DataFeedMetricNames.DISPERSAL_CONFIGURATION_INIT_ERRORS, 1);
             configError.addTags(metricTags);
