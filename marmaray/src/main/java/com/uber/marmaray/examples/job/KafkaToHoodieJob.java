@@ -55,7 +55,6 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.uber.marmaray.common.configuration.Configuration;
-import com.uber.marmaray.common.converters.data.HoodieSinkDataConverter;
 
 /**
  * Job to load data from kafka to hoodie

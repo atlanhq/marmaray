@@ -121,7 +121,7 @@ public class HoodieSink implements ISink, scala.Serializable {
                       @NonNull final JavaSparkContext jsc,
                       @NonNull final IMetadataManager metadataMgr,
                       @NonNull final Optional<String> defaultDataPartitioner) {
-      this(hoodieConf, hadoopConf, hoodieSinkDataConverter, jsc, metadataMgr, false, defaultDataPartitioner);
+        this(hoodieConf, hadoopConf, hoodieSinkDataConverter, jsc, metadataMgr, false, defaultDataPartitioner);
     }
 
     public HoodieSink(@NonNull final HoodieConfiguration hoodieConf,

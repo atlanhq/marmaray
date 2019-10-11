@@ -152,7 +152,8 @@ public class KafkaWorkUnitCalculator implements IWorkUnitCalculator<OffsetRange,
         final String topicSpecificName = getTopicSpecificMetadataKey(topicName);
         nextRunState.getPartitionOffsets().entrySet().forEach(
                 entry -> {
-                    metadataManager.set(topicSpecificName + entry.getKey(), new StringValue(entry.getValue().toString()));
+                    metadataManager.set(topicSpecificName + entry.getKey(),
+                            new StringValue(entry.getValue().toString()));
                 });
     }
 

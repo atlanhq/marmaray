@@ -46,7 +46,7 @@
         </module>
 
         <!-- Indentation -->
-        <module name="Indentation"/>
+<!--        <module name="Indentation"/>-->
         <module name="OperatorWrap"/>
 
         <!-- Curly braces -->
