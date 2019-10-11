@@ -241,6 +241,7 @@ services:
       - "presto-coordinator-1"
     volumes:
       - ${HUDI_WS}:/var/hoodie/ws
+      - ../demo:/var/demo
 
   adhoc-2:
     image: apachehudi/hudi-hadoop_2.8.4-hive_2.3.3-sparkadhoc_2.3.1:latest
@@ -260,6 +261,7 @@ services:
       - "presto-coordinator-1"
     volumes:
       - ${HUDI_WS}:/var/hoodie/ws
+      - ../demo:/var/demo
 
 volumes:
   namenode:

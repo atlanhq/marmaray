@@ -3,6 +3,7 @@ package com.uber.marmaray.examples.job;
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.google.common.base.Optional;
+import com.uber.marmaray.common.configuration.Configuration;
 import com.uber.marmaray.common.configuration.HadoopConfiguration;
 import com.uber.marmaray.common.configuration.HoodieConfiguration;
 import com.uber.marmaray.common.configuration.KafkaSourceConfiguration;
@@ -31,10 +32,10 @@ import com.uber.marmaray.common.sources.kafka.KafkaSource;
 import com.uber.marmaray.common.sources.kafka.KafkaWorkUnitCalculator;
 import com.uber.marmaray.common.spark.SparkArgs;
 import com.uber.marmaray.common.spark.SparkFactory;
-import com.uber.marmaray.utilities.SparkUtil;
 import com.uber.marmaray.utilities.ErrorExtractor;
 import com.uber.marmaray.utilities.FSUtils;
 import com.uber.marmaray.utilities.JobUtil;
+import com.uber.marmaray.utilities.SparkUtil;
 import com.uber.marmaray.utilities.listener.TimeoutManager;
 import lombok.Getter;
 import lombok.NonNull;
@@ -53,8 +54,6 @@ import java.time.Instant;
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
-
-import com.uber.marmaray.common.configuration.Configuration;
 
 /**
  * Job to load data from kafka to hoodie

@@ -36,7 +36,7 @@ import org.apache.avro.SchemaBuilder;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.generic.GenericRecordBuilder;
-import org.apache.spark.streaming.kafka010.KafkaTestUtils;
+import KafkaT;
 import org.hibernate.validator.constraints.NotEmpty;
 
 import java.io.FileNotFoundException;
@@ -68,14 +68,14 @@ public class KafkaTestHelper {
     private static final String STRING_VALUE_DEFAULT = "value";
     private static final Boolean BOOLEAN_VALUE_DEFAULT = true;
 
-    public static void createTopicPartitions(@NonNull final KafkaTestUtils kafkaTestUtils, final String topicName,
+    public static void createTopicPartitions(@NonNull final KafkaUtils kafkaTestUtils, final String topicName,
         final int partitions) {
         Preconditions.checkArgument(!Strings.isNullOrEmpty(topicName));
         // Create topic.
         kafkaTestUtils.createTopic(topicName, partitions);
     }
 
-    public static ProducerConfig getProducerConfig(@NonNull final KafkaTestUtils kafkaTestUtils) {
+    public static ProducerConfig getProducerConfig(@NonNull final KafkaUtils kafkaTestUtils) {
         final Properties props = new Properties();
         props.put("metadata.broker.list", kafkaTestUtils.brokerAddress());
         props.put("serializer.class", DefaultEncoder.class.getName());
@@ -88,7 +88,7 @@ public class KafkaTestHelper {
     /**
      * It publishes kafka messages to specified partitions[index is used as partition number].
      */
-    public static void publishMessages(@NonNull final KafkaTestUtils kafkaTestUtils, final String topicName,
+    public static void publishMessages(@NonNull final KafkaUtils kafkaTestUtils, final String topicName,
         @NonNull final List<List<byte[]>> messagesList) {
         Preconditions.checkArgument(!Strings.isNullOrEmpty(topicName));
         final Producer<String, byte[]> producer = new Producer<>(getProducerConfig(kafkaTestUtils));
@@ -184,7 +184,7 @@ public class KafkaTestHelper {
         }
     }
 
-    public static void publishMessagesToKafkaTopics(@NonNull final KafkaTestUtils kafkaTestUtils,
+    public static void publishMessagesToKafkaTopics(@NonNull final KafkaUtils kafkaTestUtils,
         @NotEmpty final String topicName)
         throws FileNotFoundException {
         Preconditions.checkArgument(!Strings.isNullOrEmpty(topicName));
