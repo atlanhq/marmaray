@@ -28,7 +28,6 @@ import lombok.NonNull;
 import org.apache.hudi.common.util.Option;
 
 import java.io.IOException;
-import java.util.Optional;
 
 /**
  * {@link HoodieErrorPayload} is a class to represent error payloads written by Hoodie.

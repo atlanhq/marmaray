@@ -16,7 +16,6 @@
  */
 package com.uber.marmaray.utilities;
 
-import com.google.common.base.Optional;
 import org.apache.hudi.common.model.HoodieRecord;
 import org.apache.hudi.common.model.HoodieRecordPayload;
 import org.apache.hudi.common.table.HoodieTableConfig;

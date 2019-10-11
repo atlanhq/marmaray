@@ -450,7 +450,8 @@ public class HoodieSink implements ISink, scala.Serializable {
     }
 
     private JavaRDD<HoodieRecord<HoodieRecordPayload>> dedupRecords(@NonNull final HoodieWriteClientWrapper writeClient,
-                                                                    @NonNull final JavaRDD<HoodieRecord<HoodieRecordPayload>> hoodieRecords) {
+                                                                    @NonNull final JavaRDD<HoodieRecord<
+                                                                            HoodieRecordPayload>> hoodieRecords) {
         return writeClient.filterExists(hoodieRecords).persist(StorageLevel.DISK_ONLY());
     }
 
@@ -460,7 +461,8 @@ public class HoodieSink implements ISink, scala.Serializable {
      * see {@link UserDefinedBulkInsertPartitioner}.
      */
     public static UserDefinedBulkInsertPartitioner getDataPartitioner(@NonNull final HoodieConfiguration hoodieConf,
-                                                                      @NonNull final Optional<String> defaultDataPartitioner) {
+                                                                      @NonNull final Optional<String>
+                                                                              defaultDataPartitioner) {
         try {
             return (UserDefinedBulkInsertPartitioner) Class.forName(hoodieConf.getHoodieDataPartitioner(
                     defaultDataPartitioner.isPresent() ? defaultDataPartitioner.get()

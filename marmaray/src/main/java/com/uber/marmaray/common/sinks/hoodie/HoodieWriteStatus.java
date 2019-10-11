@@ -21,7 +21,6 @@ import org.apache.hudi.common.model.HoodieRecord;
 import org.apache.hudi.common.util.Option;
 
 import java.util.Map;
-import java.util.Optional;
 
 /**
  * Helper class to change default behavior for {@link WriteStatus}
@@ -30,7 +29,7 @@ public class HoodieWriteStatus extends WriteStatus {
 
     private long totalRecords;
 
-    public HoodieWriteStatus(Boolean trackSuccessRecords, Double failureFraction) {
+    public HoodieWriteStatus(final Boolean trackSuccessRecords, final Double failureFraction) {
         super(trackSuccessRecords, failureFraction);
     }
 

@@ -18,7 +18,6 @@
 package com.uber.marmaray.common.configuration;
 
 import com.google.common.base.Preconditions;
-import org.apache.hudi.config.DefaultHoodieConfig;
 import org.apache.hudi.config.HoodieHBaseIndexConfig;
 import org.apache.hudi.config.HoodieIndexConfig;
 import org.apache.hudi.index.HoodieIndex;

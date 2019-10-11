@@ -3,8 +3,11 @@ package com.uber.marmaray.examples.job;
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.google.common.base.Optional;
-import com.uber.marmaray.common.configuration.*;
-import com.uber.marmaray.common.converters.data.*;
+import com.uber.marmaray.common.configuration.HadoopConfiguration;
+import com.uber.marmaray.common.configuration.HoodieConfiguration;
+import com.uber.marmaray.common.configuration.KafkaSourceConfiguration;
+import com.uber.marmaray.common.converters.data.HoodieSinkDataConverter;
+import com.uber.marmaray.common.converters.data.KafkaSourceDataConverter;
 import com.uber.marmaray.common.exceptions.JobRuntimeException;
 import com.uber.marmaray.common.job.JobDag;
 import com.uber.marmaray.common.job.JobManager;
@@ -53,7 +56,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.uber.marmaray.common.configuration.Configuration;
 import com.uber.marmaray.common.converters.data.HoodieSinkDataConverter;
-
 
 /**
  * Job to load data from kafka to hoodie
@@ -167,8 +169,8 @@ public class KafkaToHoodieJob {
             // Sink
             HoodieSinkDataConverter hoodieSinkDataConverter = new HoodieSinkDataConverter(conf, new ErrorExtractor(),
                     hoodieConf);
-            HoodieSink hoodieSink = new HoodieSink(hoodieConf, hadoopConf, hoodieSinkDataConverter, jsc, metadataManager,
-                    Optional.absent());
+            HoodieSink hoodieSink = new HoodieSink(hoodieConf, hadoopConf, hoodieSinkDataConverter, jsc,
+                    metadataManager, Optional.absent());
 
             log.info("Initializing work unit calculator for job");
             final IWorkUnitCalculator workUnitCalculator = new KafkaWorkUnitCalculator(kafkaSourceConf);

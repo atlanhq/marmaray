@@ -19,15 +19,12 @@ package com.uber.marmaray.common.converters.data;
 import com.uber.marmaray.common.AvroPayload;
 import com.uber.marmaray.common.configuration.Configuration;
 import com.uber.marmaray.common.configuration.HoodieConfiguration;
-import com.uber.marmaray.common.exceptions.InvalidDataException;
-import org.apache.hudi.common.model.HoodieKey;
 import com.uber.marmaray.utilities.HoodieSinkConverterErrorExtractor;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
-import org.hibernate.validator.constraints.NotEmpty;
 
 import static com.uber.marmaray.utilities.DateUtil.DATE_PARTITION_FORMAT;
 

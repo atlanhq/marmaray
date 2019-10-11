@@ -11,12 +11,12 @@ import org.apache.avro.io.DecoderFactory;
 import java.io.IOException;
 
 public class KafkaSchemaAvroServiceReader extends AbstractKafkaSchemaServiceReader {
-    public KafkaSchemaAvroServiceReader(Schema schema) {
+    public KafkaSchemaAvroServiceReader(final Schema schema) {
         super(schema);
     }
 
     @Override
-    public GenericRecord read(byte[] buffer) throws InvalidDataException {
+    public GenericRecord read(final byte[] buffer) throws InvalidDataException {
         final DatumReader<GenericRecord> datumReader = new GenericDatumReader<>(getSchema());
         BinaryDecoder decoder = DecoderFactory.get().binaryDecoder(buffer, null);
         try {

@@ -11,12 +11,12 @@ import org.apache.avro.io.JsonDecoder;
 import java.io.IOException;
 
 public class KafkaSchemaJSONServiceReader extends AbstractKafkaSchemaServiceReader {
-    public KafkaSchemaJSONServiceReader(Schema schema) {
+    public KafkaSchemaJSONServiceReader(final Schema schema) {
         super(schema);
     }
 
     @Override
-    public GenericRecord read(byte[] buffer) throws InvalidDataException {
+    public GenericRecord read(final byte[] buffer) throws InvalidDataException {
         final DatumReader<GenericRecord> datumReader = new GenericDatumReader<>(getSchema());
         try {
             JsonDecoder decoder = DecoderFactory.get().jsonDecoder(getSchema(), new String(buffer));
