@@ -63,7 +63,7 @@
             <configuration>
               <skip>${docker.build.skip}</skip>
               <pullNewerImage>false</pullNewerImage>
-              <repository>marmaray/marmaray-hadoop_${docker.hadoop.version}-history</repository>
+              <repository>apachehudi/hudi-hadoop_${docker.hadoop.version}-history</repository>
               <tag>latest</tag>
             </configuration>
           </execution>
@@ -78,7 +78,7 @@
             <configuration>
               <skip>${docker.build.skip}</skip>
               <pullNewerImage>false</pullNewerImage>
-              <repository>marmaray/marmaray-hadoop_${docker.hadoop.version}-history</repository>
+              <repository>apachehudi/hudi-hadoop_${docker.hadoop.version}-history</repository>
               <tag>${project.version}</tag>
             </configuration>
           </execution>

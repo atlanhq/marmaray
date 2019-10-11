@@ -86,7 +86,7 @@
                             <skip>${docker.build.skip}</skip>
                             <pullNewerImage>false</pullNewerImage>
                             <repository>
-                                marmaray/marmaray-hadoop_${docker.hadoop.version}-prestobase_${docker.presto.version}
+                                apachehudi/hudi-hadoop_${docker.hadoop.version}-prestobase_${docker.presto.version}
                             </repository>
                             <tag>latest</tag>
                         </configuration>
@@ -103,7 +103,7 @@
                             <skip>${docker.build.skip}</skip>
                             <pullNewerImage>false</pullNewerImage>
                             <repository>
-                                marmaray/marmaray-hadoop_${docker.hadoop.version}-prestobase_${docker.presto.version}
+                                apachehudi/hudi-hadoop_${docker.hadoop.version}-prestobase_${docker.presto.version}
                             </repository>
                             <tag>${project.version}</tag>
                         </configuration>

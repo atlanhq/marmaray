@@ -63,7 +63,7 @@
             <configuration>
               <skip>${docker.build.skip}</skip>
               <pullNewerImage>false</pullNewerImage>
-              <repository>marmaray/marmaray-hadoop_${docker.hadoop.version}-hive_${docker.hive.version}-sparkbase_${docker.spark.version}</repository>
+              <repository>apachehudi/hudi-hadoop_${docker.hadoop.version}-hive_${docker.hive.version}-sparkbase_${docker.spark.version}</repository>
               <tag>latest</tag>
             </configuration>
           </execution>
@@ -78,7 +78,7 @@
             <configuration>
               <skip>${docker.build.skip}</skip>
               <pullNewerImage>false</pullNewerImage>
-              <repository>marmaray/marmaray-hadoop_${docker.hadoop.version}-hive_${docker.hive.version}-sparkbase_${docker.spark.version}</repository>
+              <repository>apachehudi/hudi-hadoop_${docker.hadoop.version}-hive_${docker.hive.version}-sparkbase_${docker.spark.version}</repository>
               <tag>${project.version}</tag>
             </configuration>
           </execution>
