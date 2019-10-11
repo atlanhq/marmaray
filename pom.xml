@@ -11,6 +11,7 @@
     <modules>
         <module>marmaray</module>
         <module>marmaray-tools</module>
+        <module>docker/marmaray/hadoop</module>
     </modules>
 
     <properties>

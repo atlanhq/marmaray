@@ -72,6 +72,10 @@ localdocs/
 .idea/
 *.iml
 
+# eclipse
+.project
+.settings
+
 # Project specific items (local conf, build dir)
 config/local.json
 maps-evidence/
