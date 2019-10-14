@@ -1,9 +1,10 @@
-package com.uber.marmaray.common.metrics;
+package com.uber.marmaray.common.reporters;
 
 import com.codahale.metrics.Gauge;
 import com.codahale.metrics.MetricFilter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.graphite.Graphite;
+import com.uber.marmaray.common.metrics.Metric;
 import com.uber.marmaray.common.reporters.IReporter;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;

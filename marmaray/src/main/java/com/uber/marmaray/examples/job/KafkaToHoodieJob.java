@@ -15,6 +15,7 @@ import com.uber.marmaray.common.job.JobManager;
 import com.uber.marmaray.common.metadata.HoodieBasedMetadataManager;
 import com.uber.marmaray.common.metadata.IMetadataManager;
 import com.uber.marmaray.common.metrics.*;
+import com.uber.marmaray.common.reporters.ElasticsearchReporter;
 import com.uber.marmaray.common.reporters.PromPushGatewayReporter;
 import com.uber.marmaray.common.reporters.Reporters;
 import com.uber.marmaray.common.schema.kafka.KafkaSchemaJSONServiceReader;
@@ -78,7 +79,7 @@ public class KafkaToHoodieJob {
 
         final Reporters reporters = new Reporters();
 //        reporters.addReporter(new ConsoleReporter());
-        reporters.addReporter(new PromPushGatewayReporter("0.0.0.0:9091", "KafkaToHoodieJob"));
+        reporters.addReporter(new ElasticsearchReporter("localhost", 9200, "marmaray_metrics"));
 
         final Map<String, String> metricTags = Collections.emptyMap();
         final DataFeedMetrics dataFeedMetrics = new DataFeedMetrics("KafkaToHoodieJob", metricTags);
