@@ -56,6 +56,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class JobDag<T, V extends AbstractValue, R extends IRunState<R>, C extends IWorkUnitCalculator<T, R, K, V>,
     K extends IWorkUnitCalculatorResult<T, R>> extends Dag {
 
+    public static final String JOB_DAG_RESULT = "job_dag_result";
     public static final String LAST_RUNTIME_METADATA_KEY = "runtime";
     public static final String LAST_EXECUTION_METADATA_KEY = "last_execution";
     @NonNull
@@ -213,8 +214,7 @@ public class JobDag<T, V extends AbstractValue, R extends IRunState<R>, C extend
     private void reportStatus(final boolean successful) {
         final long statusValue =
                 successful ? DataFeedMetricNames.RESULT_SUCCESS : DataFeedMetricNames.RESULT_FAILURE;
-        final LongMetric successMetric = new LongMetric(
-                DataFeedMetricNames.RESULT, statusValue);
+        final LongMetric successMetric = new LongMetric(JobDag.JOB_DAG_RESULT, statusValue);
         successMetric.addTags(this.dataFeedMetrics.getBaseTags());
         this.reporters.report(successMetric);
     }

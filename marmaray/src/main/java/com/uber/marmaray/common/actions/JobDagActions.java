@@ -43,7 +43,7 @@ import static com.uber.marmaray.common.metrics.DataFeedMetricNames.RESULT_SUCCES
  */
 @Slf4j
 public final class JobDagActions {
-    public static final String RESULT_METRIC = "result";
+    public static final String RESULT_METRIC = "job_dag_action_result";
     public static final String TIME_METRIC = "execution_time";
 
     /**

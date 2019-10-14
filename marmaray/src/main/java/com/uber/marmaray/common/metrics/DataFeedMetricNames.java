@@ -58,7 +58,7 @@ public final class DataFeedMetricNames {
     public static final String NON_CONFORMING_ROWCOUNT = "non_conforming_rowcount";
 
     // Used to indicate if job succeeded or not.
-    public static final String RESULT = "result";
+    public static final String RESULT = "job_result";
     public static final int RESULT_SUCCESS = 1;
     public static final int RESULT_FAILURE = -1;
 
