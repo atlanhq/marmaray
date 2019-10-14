@@ -37,6 +37,7 @@ import lombok.Getter;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.avro.Schema;
+import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.util.Utf8;
 import org.apache.commons.io.IOUtils;
@@ -120,8 +121,13 @@ class KafkaSchemaServiceReader implements ISchemaService.ISchemaServiceReader, S
 
         try {
             GenericRecord rec = datumReader.read(null, decoder);
-            rec.put("_atlan_table_group_key", new Utf8(entry.getKey()));
-            return rec;
+            Schema schema = new Schema.Parser().parse("{\"namespace\": \"example.avro\", \"type\": \"record\", \"name\": \"Record\", \"fields\": [{\"name\": \"Region\", \"type\": \"string\"}, {\"name\":              \"Country\", \"type\": \"string\"}, {\"name\": \"_atlan_table_group_key\", \"type\": \"string\", \"default\" : \"okay\"}] }");
+            GenericRecord gr = new GenericData.Record(schema);
+            for(int i = 0; i< ((GenericData.Record) rec).getSchema().getFields().size(); i++) {
+                gr.put(((GenericData.Record) rec).getSchema().getFields().get(i).name(), ((GenericData.Record) rec).get(((GenericData.Record) rec).getSchema().getFields().get(i).name()));
+            }
+            gr.put("_atlan_table_group_key", new Utf8(entry.getKey()));
+            return gr;
         } catch (IOException e) {
             throw new InvalidDataException("Error decoding data", e);
         }
@@ -194,7 +200,7 @@ public class KafkaToHoodieJob {
         final Configuration conf = getConfiguration(args);
 
         final Reporters reporters = new Reporters();
-        reporters.addReporter(new PrometheusReporter(conf));
+        reporters.addReporter(new ConsoleReporter());
 
         final Map<String, String> metricTags = Collections.emptyMap();
         final DataFeedMetrics dataFeedMetrics = new DataFeedMetrics("kafka to hoodie ingestion", metricTags);
