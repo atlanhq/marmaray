@@ -343,6 +343,14 @@
             <artifactId>guava</artifactId>
             <version>${google.guava.version}</version>
         </dependency>
+
+        <!--     METRICS DEPENDENCIES    -->
+        <dependency>
+            <groupId>io.dropwizard.metrics</groupId>
+            <artifactId>metrics-graphite</artifactId>
+            <version>4.1.0</version>
+        </dependency>
+
         <!--     SPARK DEPENDENCIES     -->
         <dependency>
             <groupId>org.apache.spark</groupId>
