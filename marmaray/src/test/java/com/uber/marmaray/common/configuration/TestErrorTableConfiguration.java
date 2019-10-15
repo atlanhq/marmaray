@@ -51,7 +51,7 @@ public class TestErrorTableConfiguration {
 
         HoodieConfiguration hoodieConfiguration = createHoodieConfiguration(conf);
 
-        Assert.assertEquals(hoodieConfiguration.getBasePath(), errorBasePath);
+        Assert.assertEquals(hoodieConfiguration.getTablePath(), errorBasePath);
         Assert.assertEquals(hoodieConfiguration.getTableName(), errorTableName);
         Assert.assertEquals(hoodieConfiguration.getHoodieMetricsPrefix(), errorMetricsPrefix);
     }

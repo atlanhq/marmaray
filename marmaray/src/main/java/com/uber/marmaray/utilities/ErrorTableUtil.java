@@ -121,8 +121,8 @@ public final class ErrorTableUtil {
         try {
             final HoodieBasedMetadataManager metadataManager =
                 new HoodieBasedMetadataManager(hoodieConf, hadoopConf, shouldSaveChanges, jsc);
-            final HoodieSink hoodieSink = new HoodieErrorSink(hoodieConf, hadoopConf, new DummyHoodieSinkDataConverter(),
-                    jsc, metadataManager,false);
+            final HoodieSink hoodieSink = new HoodieErrorSink(hoodieConf, hadoopConf,
+                    new DummyHoodieSinkDataConverter(hoodieConf), jsc, metadataManager,false);
 
             JavaRDD<GenericRecord> errorRecords = errorData.getData().map(error -> generateGenericErrorRecord(
                 errorExtractor, errorTableSchema, error, applicationId));
@@ -162,7 +162,7 @@ public final class ErrorTableUtil {
                                                    .enableMetrics(false)
                                                    .build();
         final HadoopConfiguration hadopConf = new HadoopConfiguration(conf);
-        HoodieUtil.initHoodieDataset(FSUtils.getFs(conf, Optional.of(hoodieConf.getBasePath())), hadopConf, hoodieConf);
+        HoodieUtil.initHoodieDataset(FSUtils.getFs(conf, Optional.of(hoodieConf.getTablePath())), hadopConf, hoodieConf);
     }
 
     public static void addErrorSchemaConfiguration(

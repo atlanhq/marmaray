@@ -44,7 +44,7 @@ import java.util.Properties;
 
 /**
  * {@link HoodieConfiguration} class holds hoodie configurations.
- *
+ * <p>
  * All common properties start with {@link #HOODIE_COMMON_PROPERTY_PREFIX}.
  * All table properties start with {@link #HOODIE_TABLES_PREFIX}.
  */
@@ -116,10 +116,10 @@ public class HoodieConfiguration implements Serializable {
     // HOODIE_PARQUET_MAX_FILE_SIZE.
     public static final long DEFAULT_HOODIE_TARGET_FILE_SIZE = FileUtils.ONE_GB;
     /**
-      * Write buffer limit in bytes to be used for bulk insert
-      */
+     * Write buffer limit in bytes to be used for bulk insert
+     */
     public static final String HOODIE_INSERT_BUFFER_MEMORY_BYTES =
-        HOODIE_COMMON_PROPERTY_PREFIX + "insert_buffer_memory_bytes";
+            HOODIE_COMMON_PROPERTY_PREFIX + "insert_buffer_memory_bytes";
     public static final int DEFAULT_HOODIE_INSERT_BUFFER_MEMORY_BYTES = (int) (32 * FileUtils.ONE_MB);
 
     // Hoodie Compaction parameters
@@ -233,7 +233,7 @@ public class HoodieConfiguration implements Serializable {
     private final Optional<String> version;
 
     public HoodieConfiguration(@NonNull final Configuration conf, @NotEmpty final String tableKey,
-            @NonNull final Optional<String> version) {
+                               @NonNull final Optional<String> version) {
         this.conf = conf;
         this.tableKey = tableKey;
         this.version = version;
@@ -255,9 +255,10 @@ public class HoodieConfiguration implements Serializable {
     /**
      * @return hoodie base path directory
      */
-    public String getBasePath() {
+    public String getTablePath() {
         // HOODIE_BASE_PATH is a mandatory property. Please check {#getMandatoryProperties()}.
-        return this.getConf().getProperty(getTablePropertyKey(HOODIE_BASE_PATH, this.tableKey)).get();
+        return this.getConf().getProperty(getTablePropertyKey(HOODIE_BASE_PATH, this.tableKey)).get() + "/" +
+                this.getTableName();
     }
 
     /**
@@ -294,14 +295,14 @@ public class HoodieConfiguration implements Serializable {
 
     /**
      * @return hoodie metrics prefix.
-     * */
+     */
     public String getHoodieMetricsPrefix() {
         return this.getConf().getProperty(getTablePropertyKey(HOODIE_METRICS_PREFIX, this.tableKey)).get();
     }
 
     public String getHoodieDataPartitioner(@NotEmpty final String defaultDataPartitioner) {
         return this.getConf().getProperty(getTablePropertyKey(HOODIE_DATA_PARTITIONER, this.tableKey),
-            defaultDataPartitioner);
+                defaultDataPartitioner);
     }
 
     /**
@@ -380,7 +381,7 @@ public class HoodieConfiguration implements Serializable {
             // This table name is used for sending metrics to graphite by hoodie. It expects table name to be without
             // ".".
             builder.forTable(getTableName().replaceAll("\\.", StringTypes.UNDERSCORE));
-            builder.withPath(getBasePath());
+            builder.withPath(getTablePath());
             final boolean combineBeforeInsert =
                     getProperty(HOODIE_COMBINE_BEFORE_INSERT, DEFAULT_HOODIE_COMBINE_BEFORE_INSERT);
             final boolean combineBeforeUpsert =
@@ -482,7 +483,7 @@ public class HoodieConfiguration implements Serializable {
      * @param <T>          DataType of the property
      */
     public <T> T getProperty(@NotEmpty final String propertyKey,
-            @NonNull final T defaultValue) {
+                             @NonNull final T defaultValue) {
         final String defaultKey = getDefaultPropertyKey(propertyKey);
         final String tableKey = getTablePropertyKey(propertyKey, this.tableKey);
         final T retValue = Configuration.getProperty(this.conf, defaultKey, defaultValue);
@@ -574,13 +575,13 @@ public class HoodieConfiguration implements Serializable {
 
         public Builder withCombineBeforeInsert(final boolean combineBeforeInsert) {
             this.conf.setProperty(getTablePropertyKey(HOODIE_COMBINE_BEFORE_INSERT, tableKey),
-                Boolean.toString(combineBeforeInsert));
+                    Boolean.toString(combineBeforeInsert));
             return this;
         }
 
         public Builder withCombineBeforeUpsert(final boolean combineBeforeUpsert) {
             this.conf.setProperty(getTablePropertyKey(HOODIE_COMBINE_BEFORE_UPSERT, tableKey),
-                Boolean.toString(combineBeforeUpsert));
+                    Boolean.toString(combineBeforeUpsert));
             return this;
         }
 
