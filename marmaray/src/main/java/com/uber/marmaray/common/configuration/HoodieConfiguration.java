@@ -17,6 +17,7 @@
 package com.uber.marmaray.common.configuration;
 
 import com.google.common.base.Optional;
+import com.uber.marmaray.common.sinks.hoodie.HoodieWriteStatus;
 import org.apache.hudi.WriteStatus;
 import org.apache.hudi.common.model.HoodieCleaningPolicy;
 import org.apache.hudi.common.table.HoodieTableConfig;
@@ -198,7 +199,7 @@ public class HoodieConfiguration implements Serializable {
      * Hoodie Write status class
      */
     public static final String HOODIE_WRITE_STATUS_CLASS = HOODIE_COMMON_PROPERTY_PREFIX + "write_status_class";
-    public static final String DEFAULT_HOODIE_WRITE_STATUS_CLASS = WriteStatus.class.getCanonicalName();
+    public static final String DEFAULT_HOODIE_WRITE_STATUS_CLASS = HoodieWriteStatus.class.getCanonicalName();
     // Hoodie metrics config.
     /**
      * Hoodie metrics prefix

@@ -17,11 +17,11 @@
 package com.uber.marmaray.common.sinks.hoodie;
 
 import org.apache.hudi.WriteStatus;
+import org.apache.hudi.common.model.HoodieKey;
 import org.apache.hudi.common.model.HoodieRecord;
 import org.apache.hudi.common.util.Option;
 
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 /**
  * Helper class to change default behavior for {@link WriteStatus}
@@ -29,6 +29,10 @@ import java.util.Optional;
 public class HoodieWriteStatus extends WriteStatus {
 
     private long totalRecords;
+    private long totalErrorRecords = 0;
+
+    private final HashMap<HoodieKey, Throwable> errors = new HashMap<>();
+    private final List<HoodieRecord> failedRecords = new ArrayList<>();
 
     public HoodieWriteStatus(Boolean trackSuccessRecords, Double failureFraction) {
         super(trackSuccessRecords, failureFraction);
@@ -43,8 +47,55 @@ public class HoodieWriteStatus extends WriteStatus {
         this.totalRecords++;
     }
 
+    /**
+     * Overriding {@link #markFailure(HoodieRecord, Throwable, Option)} to avoid caching. Catch all error records for
+     * error table
+     * {@link org.apache.hudi.common.model.HoodieKey} for successfully written hoodie records.
+     */
+    @Override
+    public void markFailure(HoodieRecord record, Throwable t, Option<Map<String, String>> optionalRecordMetadata) {
+        failedRecords.add(record);
+        errors.put(record.getKey(), t);
+
+        totalRecords++;
+        totalErrorRecords++;
+    }
+
+    @Override
+    public boolean hasErrors() {
+        return totalErrorRecords > 0;
+    }
+
     @Override
     public long getTotalRecords() {
-        return super.getTotalRecords() + this.totalRecords;
+        return this.totalRecords;
+    }
+
+    @Override
+    public long getTotalErrorRecords() {
+        return totalErrorRecords;
+    }
+
+    @Override
+    public List<HoodieRecord> getFailedRecords() {
+        return failedRecords;
+    }
+
+    @Override
+    public HashMap<HoodieKey, Throwable> getErrors() {
+        return errors;
+    }
+
+    @Override
+    public boolean isErrored(HoodieKey key) {
+        return errors.containsKey(key);
+    }
+
+    @Override
+    public String toString() {
+        return "WriteStatus {" + "hasErrors='" + hasErrors() + '\'' +
+                ", errorCount='" + totalErrorRecords + '\'' +
+                ", errorPct='" + (100.0 * totalErrorRecords) / totalRecords + '\'' +
+                '}';
     }
 }
