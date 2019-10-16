@@ -15,8 +15,7 @@ import com.uber.marmaray.common.job.JobManager;
 import com.uber.marmaray.common.metadata.HoodieBasedMetadataManager;
 import com.uber.marmaray.common.metadata.IMetadataManager;
 import com.uber.marmaray.common.metrics.*;
-import com.uber.marmaray.common.reporters.ElasticsearchReporter;
-import com.uber.marmaray.common.reporters.PromPushGatewayReporter;
+import com.uber.marmaray.common.reporters.ConsoleReporter;
 import com.uber.marmaray.common.reporters.Reporters;
 import com.uber.marmaray.common.schema.kafka.KafkaSchemaJSONServiceReader;
 import com.uber.marmaray.common.sinks.hoodie.HoodieSink;
@@ -78,8 +77,7 @@ public class KafkaToHoodieJob {
         final Configuration conf = getConfiguration(args);
 
         final Reporters reporters = new Reporters();
-//        reporters.addReporter(new ConsoleReporter());
-        reporters.addReporter(new ElasticsearchReporter("localhost", 9200, "marmaray_metrics"));
+        reporters.addReporter(new ConsoleReporter());
 
         final Map<String, String> metricTags = Collections.emptyMap();
         final DataFeedMetrics dataFeedMetrics = new DataFeedMetrics("KafkaToHoodieJob", metricTags);
@@ -111,7 +109,8 @@ public class KafkaToHoodieJob {
         final TimerMetric convertSchemaLatencyMs =
                 new TimerMetric(DataFeedMetricNames.CONVERT_SCHEMA_LATENCY_MS, metricTags);
 
-        final Schema outputSchema = new Schema.Parser().parse(hoodieConf.getHoodieWriteConfig().getSchema());
+        final String schema = "{\"namespace\": \"example.avro\", \"type\": \"record\", \"name\": \"Record\", \"fields\": [{\"name\": \"Region\", \"type\": \"string\"}, {\"name\": \"Country\", \"type\": \"string\"}] }";
+        final Schema outputSchema = new Schema.Parser().parse(schema);
         convertSchemaLatencyMs.stop();
         reporters.report(convertSchemaLatencyMs);
 

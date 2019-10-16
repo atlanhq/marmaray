@@ -16,7 +16,6 @@
  */
 package com.uber.marmaray.utilities;
 
-import com.google.common.base.Optional;
 import org.apache.hudi.common.model.HoodieRecord;
 import org.apache.hudi.common.model.HoodieRecordPayload;
 import org.apache.hudi.common.table.HoodieTableConfig;
@@ -51,13 +50,13 @@ public final class HoodieUtil {
      */
     public static void initHoodieDataset(@NonNull final FileSystem fs, @NonNull final HadoopConfiguration hadoopConf,
                                           @NonNull final HoodieConfiguration hoodieConf) throws IOException {
-        final Path hoodieMetaFolder = new Path(hoodieConf.getBasePath(), HoodieTableMetaClient.METAFOLDER_NAME);
+        final Path hoodieMetaFolder = new Path(hoodieConf.getTablePath(), HoodieTableMetaClient.METAFOLDER_NAME);
         final Path hoodiePropertiesFile = new Path(hoodieMetaFolder.toString(),
                 HoodieTableConfig.HOODIE_PROPERTIES_FILE);
         if (!fs.exists(hoodiePropertiesFile)) {
             HoodieTableMetaClient
                     .initDatasetAndGetMetaClient(hadoopConf.getHadoopConf(),
-                        hoodieConf.getBasePath(), hoodieConf.getHoodieInitProperties());
+                        hoodieConf.getTablePath(), hoodieConf.getHoodieInitProperties());
         }
     }
 

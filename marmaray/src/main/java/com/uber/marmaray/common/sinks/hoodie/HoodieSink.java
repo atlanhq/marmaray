@@ -194,7 +194,7 @@ public class HoodieSink implements ISink, scala.Serializable {
     protected void initDataset() {
         try {
             HoodieUtil.initHoodieDataset(FSUtils.getFs(this.hoodieConf.getConf(),
-                    Optional.of(this.hoodieConf.getBasePath())), this.hadoopConf, this.hoodieConf);
+                    Optional.of(this.hoodieConf.getTablePath())), this.hadoopConf, this.hoodieConf);
         } catch (IOException e) {
             log.error("Error initializing hoodie dataset.", e);
             throw new JobRuntimeException("Could not initialize hoodie dataset", e);

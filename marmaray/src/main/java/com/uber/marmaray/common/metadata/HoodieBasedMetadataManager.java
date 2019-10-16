@@ -191,11 +191,11 @@ public class HoodieBasedMetadataManager implements IMetadataManager<StringValue>
     private static Map<String, String> readMetadataInfo(
             @NonNull final HoodieConfiguration hoodieConf, @NonNull final HadoopConfiguration hadoopConf) {
         try {
-            final FileSystem fs = FSUtils.getFs(hoodieConf.getConf(), Optional.of(hoodieConf.getBasePath()));
+            final FileSystem fs = FSUtils.getFs(hoodieConf.getConf(), Optional.of(hoodieConf.getTablePath()));
             HoodieUtil.initHoodieDataset(fs, hadoopConf, hoodieConf);
             final HoodieTableMetaClient hoodieTableMetaClient =
                 new HoodieTableMetaClient(new HadoopConfiguration(hoodieConf.getConf()).getHadoopConf(),
-                    hoodieConf.getBasePath(), true);
+                    hoodieConf.getTablePath(), true);
             final HoodieActiveTimeline hoodieActiveTimeline = hoodieTableMetaClient.getActiveTimeline();
             final Option<HoodieInstant> lastInstant = hoodieActiveTimeline.getCommitTimeline()
                 .filterCompletedInstants().lastInstant();

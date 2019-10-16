@@ -57,6 +57,10 @@ public class HoodieSinkErrorExtractor extends ErrorExtractor {
 
     @Override
     public String getErrorException(@NonNull final ErrorData errorData) {
-        return errorData.getErrMessage();
+        String errorMessage = errorData.getErrMessage();
+        if (errorMessage != null) {
+            return errorMessage;
+        }
+        return "NA";
     }
 }

@@ -29,10 +29,8 @@ import lombok.NonNull;
  * processed by the data converter.
  */
 public class DummyHoodieSinkDataConverter extends HoodieSinkDataConverter {
-    public DummyHoodieSinkDataConverter() {
-
-        super(new Configuration(), new ErrorExtractor(), HoodieConfiguration.newBuilder(new Configuration(),
-                "test").build());
+    public DummyHoodieSinkDataConverter(@NonNull final HoodieConfiguration hoodieConf) {
+        super(new Configuration(), new ErrorExtractor(), hoodieConf);
     }
 
     @Override
