@@ -156,10 +156,22 @@ public class KafkaToHoodieJob {
 
             jobManager.addJobDag(jobDag);
 
-            log.info("Running ingestion job");
-            do {
-                runJob(jobManager, reporters, metricTags);
-            } while (streamingConf.isEnabled);
+            try {
+                jobManager.run(streamingConf);
+                JobUtil.raiseExceptionIfStatusFailed(jobManager.getJobManagerStatus());
+            } catch (final Throwable t) {
+                if (TimeoutManager.getTimedOut()) {
+                    final LongMetric runTimeError = new LongMetric(DataFeedMetricNames.MARMARAY_JOB_ERROR, 1);
+                    runTimeError.addTags(metricTags);
+                    runTimeError.addTags(DataFeedMetricNames.getErrorModuleCauseTags(
+                            ModuleTagNames.JOB_MANAGER, ErrorCauseTagNames.TIME_OUT));
+                    reporters.report(runTimeError);
+                }
+                final LongMetric configError = new LongMetric(JobMetricNames.RUN_JOB_ERROR_COUNT, 1);
+                configError.addTags(metricTags);
+                reporters.report(configError);
+                throw t;
+            }
 
             log.info("Ingestion job has been completed");
 
@@ -172,26 +184,6 @@ public class KafkaToHoodieJob {
             reporters.finish();
         } finally {
             sparkFactory.stop();
-        }
-    }
-
-    private void runJob(@NonNull final JobManager jobManager, @NonNull final Reporters reporters,
-                        @NonNull final Map<String, String> metricTags) {
-        try {
-            jobManager.run();
-            JobUtil.raiseExceptionIfStatusFailed(jobManager.getJobManagerStatus());
-        } catch (final Throwable t) {
-            if (TimeoutManager.getTimedOut()) {
-                final LongMetric runTimeError = new LongMetric(DataFeedMetricNames.MARMARAY_JOB_ERROR, 1);
-                runTimeError.addTags(metricTags);
-                runTimeError.addTags(DataFeedMetricNames.getErrorModuleCauseTags(
-                        ModuleTagNames.JOB_MANAGER, ErrorCauseTagNames.TIME_OUT));
-                reporters.report(runTimeError);
-            }
-            final LongMetric configError = new LongMetric(JobMetricNames.RUN_JOB_ERROR_COUNT, 1);
-            configError.addTags(metricTags);
-            reporters.report(configError);
-            throw t;
         }
     }
 

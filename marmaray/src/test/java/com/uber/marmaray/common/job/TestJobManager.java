@@ -20,10 +20,7 @@ package com.uber.marmaray.common.job;
 import com.google.common.base.Optional;
 import com.uber.marmaray.TestSparkUtil;
 import com.uber.marmaray.common.actions.IJobDagAction;
-import com.uber.marmaray.common.configuration.Configuration;
-import com.uber.marmaray.common.configuration.LockManagerConfiguration;
-import com.uber.marmaray.common.configuration.SparkConfiguration;
-import com.uber.marmaray.common.configuration.ZookeeperConfiguration;
+import com.uber.marmaray.common.configuration.*;
 import com.uber.marmaray.common.metadata.JobManagerMetadataTracker;
 import com.uber.marmaray.common.reporters.Reporters;
 import com.uber.marmaray.common.spark.SparkArgs;
@@ -96,6 +93,7 @@ public class TestJobManager {
     public void testEmptyJobDagException() {
         final SparkArgs sparkArgs = getSampleMarmaraySparkArgs();
         final SparkFactory sparkFactory = new SparkFactory(sparkArgs);
+        final StreamingConfiguration streamingConf = new StreamingConfiguration(new Configuration());
 
         final JobManager jobManager = JobManager.createJobManager(this.conf,
                 "test_app_name", "daily", sparkFactory, new Reporters());
@@ -103,7 +101,7 @@ public class TestJobManager {
         this.thrown.expect(RuntimeException.class);
         this.thrown.expectMessage("No job dags to execute");
 
-        jobManager.run();
+        jobManager.run(streamingConf);
         sparkFactory.stop();
     }
 
@@ -111,6 +109,7 @@ public class TestJobManager {
     public void testSuccessCase() {
         final SparkArgs sparkArgs = getSampleMarmaraySparkArgs();
         final SparkFactory sparkFactory = new SparkFactory(sparkArgs);
+        final StreamingConfiguration streamingConf = new StreamingConfiguration(new Configuration());
 
         final BaseStatus status = new BaseStatus();
         status.setStatus(IStatus.Status.SUCCESS);
@@ -138,7 +137,7 @@ public class TestJobManager {
         jobManager.setTracker(this.mockJobManagerMetatdataTracker);
         jobManager.addPostJobManagerAction(this.mockJobDagAction);
         jobManager.addPostJobManagerActions(new ArrayList<>());
-        jobManager.run();
+        jobManager.run(streamingConf);
         sparkFactory.stop();
 
         // verify
@@ -164,6 +163,7 @@ public class TestJobManager {
     public void testJobRunException() {
         final SparkArgs sparkArgs = getSampleMarmaraySparkArgs();
         final SparkFactory sparkFactory = new SparkFactory(sparkArgs);
+        final StreamingConfiguration streamingConf = new StreamingConfiguration(new Configuration());
 
         final BaseStatus status = new BaseStatus();
         status.setStatus(IStatus.Status.SUCCESS);
@@ -182,7 +182,7 @@ public class TestJobManager {
         jobManager.setTracker(this.mockJobManagerMetatdataTracker);
         jobManager.addPostJobManagerAction(this.mockJobDagAction);
         jobManager.addPostJobManagerActions(new ArrayList<>());
-        jobManager.run();
+        jobManager.run(streamingConf);
         sparkFactory.stop();
 
         // verify

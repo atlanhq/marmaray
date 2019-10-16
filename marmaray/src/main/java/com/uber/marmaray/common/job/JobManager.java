@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableMap;
 import com.uber.marmaray.common.actions.IJobDagAction;
 import com.uber.marmaray.common.actions.JobDagActions;
 import com.uber.marmaray.common.configuration.Configuration;
+import com.uber.marmaray.common.configuration.StreamingConfiguration;
 import com.uber.marmaray.common.exceptions.JobRuntimeException;
 import com.uber.marmaray.common.exceptions.MetadataException;
 import com.uber.marmaray.common.metadata.JobManagerMetadataTracker;
@@ -181,77 +182,79 @@ public final class JobManager {
     /**
      * Execute all registered {@link JobDag}, then perform all registered {@link IJobDagAction}
      */
-    public void run() {
-        final Queue<Future<Pair<String, IStatus>>> futures = new ConcurrentLinkedDeque<>();
-        final AtomicBoolean isSuccess = new AtomicBoolean(true);
-        // ensure the SparkContext has been created
-        Preconditions.checkState(!this.jobDags.isEmpty(), "No job dags to execute");
-        final JavaSparkContext javaSparkContext = sparkFactory.getSparkContext();
-        TimeoutManager.init(this.conf, javaSparkContext.sc());
-        final boolean hasMultipleDags = this.jobDags.size() > 1;
-        final Queue<Dag> runtimeJobDagOrder;
-        if (hasMultipleDags && this.jobExecutionStrategy.isPresent()) {
-            runtimeJobDagOrder = new ConcurrentLinkedDeque<>(this.jobExecutionStrategy.get().sort(this.jobDags));
-        } else {
-            runtimeJobDagOrder = this.jobDags;
-        }
-        try {
-            ThreadPoolService.init(this.conf);
-            runtimeJobDagOrder.forEach(jobDag ->
-                    futures.add(ThreadPoolService.submit(
-                        () -> {
-                            SparkJobTracker.setJobName(javaSparkContext.sc(), jobDag.getDataFeedName());
-                            if (hasMultipleDags) {
-                                setSparkStageName(javaSparkContext, jobDag.getDataFeedName());
-                            }
-                            final IStatus status = jobDag.execute();
-                            this.jobManagerStatus.addJobStatus(jobDag.getJobName(), status);
-                            return new Pair<>(jobDag.getJobName(), status);
-                        }, ThreadPoolServiceTier.JOB_DAG_TIER)));
-
-            TimeoutManager.getInstance().startMonitorThread();
-            futures.forEach(future -> {
-                    try {
-                        final Optional<Pair<String, IStatus>> result = Optional.fromNullable(future.get());
-                        IStatus.Status status = result.get().value().getStatus();
-                        log.info("job dag, name: {}, status: {}",
-                                 result.get().key(), status.name());
-                        if (IStatus.Status.FAILURE.equals(status)) {
-                            log.error("Unsuccessful run, jobdag: {}", result.get().key());
-                            isSuccess.set(false);
-                        }
-                    } catch (Exception e) {
-                        log.error("Error running job", e);
-                        isSuccess.set(false);
-                        this.jobManagerStatus.setStatus(IStatus.Status.FAILURE);
-                        this.jobManagerStatus.addException(e);
-                    }
-                }
-            );
-            if (TimeoutManager.getInstance().getTimedOut()) {
-                log.error("Time out error while running job.");
-                isSuccess.set(false);
-            }
-            // if we're not reporting success/failure through status, we need to throw an exception on failure
-            if (!isSuccess.get()) {
-                throw new JobRuntimeException("Error while running job.  Look at previous log entries for detail");
-            }
-        } catch (final Throwable t) {
-            log.error("Failed in JobManager", t);
-            isSuccess.set(false);
-            this.jobManagerStatus.setStatus(IStatus.Status.FAILURE);
-            if (t instanceof Exception) {
-                // trap exceptions and add them to the status
-                this.jobManagerStatus.addException((Exception) t);
+    public void run(@NonNull final StreamingConfiguration streamingConf) {
+        do {
+            final Queue<Future<Pair<String, IStatus>>> futures = new ConcurrentLinkedDeque<>();
+            final AtomicBoolean isSuccess = new AtomicBoolean(true);
+            // ensure the SparkContext has been created
+            Preconditions.checkState(!this.jobDags.isEmpty(), "No job dags to execute");
+            final JavaSparkContext javaSparkContext = sparkFactory.getSparkContext();
+            TimeoutManager.init(this.conf, javaSparkContext.sc());
+            final boolean hasMultipleDags = this.jobDags.size() > 1;
+            final Queue<Dag> runtimeJobDagOrder;
+            if (hasMultipleDags && this.jobExecutionStrategy.isPresent()) {
+                runtimeJobDagOrder = new ConcurrentLinkedDeque<>(this.jobExecutionStrategy.get().sort(this.jobDags));
             } else {
-                // let errors be thrown
-                throw t;
+                runtimeJobDagOrder = this.jobDags;
             }
-        } finally {
-            this.postJobManagerActions.execute(isSuccess.get());
-            shutdown(!isSuccess.get());
-            this.reporters.getReporters().forEach(IReporter::finish);
-        }
+            try {
+                ThreadPoolService.init(this.conf);
+                runtimeJobDagOrder.forEach(jobDag ->
+                        futures.add(ThreadPoolService.submit(
+                                () -> {
+                                    SparkJobTracker.setJobName(javaSparkContext.sc(), jobDag.getDataFeedName());
+                                    if (hasMultipleDags) {
+                                        setSparkStageName(javaSparkContext, jobDag.getDataFeedName());
+                                    }
+                                    final IStatus status = jobDag.execute();
+                                    this.jobManagerStatus.addJobStatus(jobDag.getJobName(), status);
+                                    return new Pair<>(jobDag.getJobName(), status);
+                                }, ThreadPoolServiceTier.JOB_DAG_TIER)));
+
+                TimeoutManager.getInstance().startMonitorThread();
+                futures.forEach(future -> {
+                            try {
+                                final Optional<Pair<String, IStatus>> result = Optional.fromNullable(future.get());
+                                IStatus.Status status = result.get().value().getStatus();
+                                log.info("job dag, name: {}, status: {}",
+                                        result.get().key(), status.name());
+                                if (IStatus.Status.FAILURE.equals(status)) {
+                                    log.error("Unsuccessful run, jobdag: {}", result.get().key());
+                                    isSuccess.set(false);
+                                }
+                            } catch (Exception e) {
+                                log.error("Error running job", e);
+                                isSuccess.set(false);
+                                this.jobManagerStatus.setStatus(IStatus.Status.FAILURE);
+                                this.jobManagerStatus.addException(e);
+                            }
+                        }
+                );
+                if (TimeoutManager.getInstance().getTimedOut()) {
+                    log.error("Time out error while running job.");
+                    isSuccess.set(false);
+                }
+                // if we're not reporting success/failure through status, we need to throw an exception on failure
+                if (!isSuccess.get()) {
+                    throw new JobRuntimeException("Error while running job.  Look at previous log entries for detail");
+                }
+            } catch (final Throwable t) {
+                log.error("Failed in JobManager", t);
+                isSuccess.set(false);
+                this.jobManagerStatus.setStatus(IStatus.Status.FAILURE);
+                if (t instanceof Exception) {
+                    // trap exceptions and add them to the status
+                    this.jobManagerStatus.addException((Exception) t);
+                } else {
+                    // let errors be thrown
+                    throw t;
+                }
+            } finally {
+                this.postJobManagerActions.execute(isSuccess.get());
+                shutdown(!isSuccess.get());
+                this.reporters.getReporters().forEach(IReporter::finish);
+            }
+        } while (streamingConf.isEnabled);
     }
 
     /**
