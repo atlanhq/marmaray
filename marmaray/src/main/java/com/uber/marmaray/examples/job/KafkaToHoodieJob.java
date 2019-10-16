@@ -3,10 +3,7 @@ package com.uber.marmaray.examples.job;
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.google.common.base.Optional;
-import com.uber.marmaray.common.configuration.Configuration;
-import com.uber.marmaray.common.configuration.HadoopConfiguration;
-import com.uber.marmaray.common.configuration.HoodieConfiguration;
-import com.uber.marmaray.common.configuration.KafkaSourceConfiguration;
+import com.uber.marmaray.common.configuration.*;
 import com.uber.marmaray.common.converters.data.HoodieSinkDataConverter;
 import com.uber.marmaray.common.converters.data.KafkaSourceDataConverter;
 import com.uber.marmaray.common.exceptions.JobRuntimeException;
@@ -75,6 +72,7 @@ public class KafkaToHoodieJob {
         final Instant jobStartTime = Instant.now();
 
         final Configuration conf = getConfiguration(args);
+        final StreamingConfiguration streamingConf = new StreamingConfiguration(conf);
 
         final Reporters reporters = new Reporters();
         reporters.addReporter(new ConsoleReporter());
@@ -109,8 +107,7 @@ public class KafkaToHoodieJob {
         final TimerMetric convertSchemaLatencyMs =
                 new TimerMetric(DataFeedMetricNames.CONVERT_SCHEMA_LATENCY_MS, metricTags);
 
-        final String schema = "{\"namespace\": \"example.avro\", \"type\": \"record\", \"name\": \"Record\", \"fields\": [{\"name\": \"Region\", \"type\": \"string\"}, {\"name\": \"Country\", \"type\": \"string\"}] }";
-        final Schema outputSchema = new Schema.Parser().parse(schema);
+        final Schema outputSchema = new Schema.Parser().parse(hoodieConf.getHoodieWriteConfig().getSchema());
         convertSchemaLatencyMs.stop();
         reporters.report(convertSchemaLatencyMs);
 
@@ -125,22 +122,6 @@ public class KafkaToHoodieJob {
         final JavaSparkContext jsc = sparkFactory.getSparkContext();
 
         log.info("Initializing metadata manager for job");
-        final TimerMetric metadataManagerInitMetric =
-                new TimerMetric(DataFeedMetricNames.INIT_METADATAMANAGER_LATENCY_MS, metricTags);
-        final IMetadataManager metadataManager;
-        try {
-            metadataManager = initMetadataManager(hadoopConf, hoodieConf, jsc);
-        } catch (final JobRuntimeException e) {
-            final LongMetric configError = new LongMetric(DataFeedMetricNames.DISPERSAL_CONFIGURATION_INIT_ERRORS, 1);
-            configError.addTags(metricTags);
-            configError.addTags(DataFeedMetricNames
-                    .getErrorModuleCauseTags(ModuleTagNames.METADATA_MANAGER, ErrorCauseTagNames.CONFIG_ERROR));
-            reporters.report(configError);
-            reporters.getReporters().forEach(dataFeedMetrics::gauageFailureMetric);
-            throw e;
-        }
-        metadataManagerInitMetric.stop();
-        reporters.report(metadataManagerInitMetric);
 
         try {
             log.info("Initializing converters & schemas for job");
@@ -158,48 +139,59 @@ public class KafkaToHoodieJob {
             final ISource kafkaSource = new KafkaSource(kafkaSourceConf, Optional.of(jsc), dataConverter,
                     Optional.absent(), Optional.absent());
 
-            // Sink
-            HoodieSinkDataConverter hoodieSinkDataConverter = new HoodieSinkDataConverter(conf, new ErrorExtractor(),
-                    hoodieConf);
-            HoodieSink hoodieSink = new HoodieSink(hoodieConf, hadoopConf, hoodieSinkDataConverter, jsc, metadataManager,
-                    Optional.absent());
-
-            log.info("Initializing work unit calculator for job");
-            final IWorkUnitCalculator workUnitCalculator = new KafkaWorkUnitCalculator(kafkaSourceConf);
-
-            log.info("Initializing job dag");
-            final JobDag jobDag = new JobDag(kafkaSource, hoodieSink, metadataManager, workUnitCalculator,
-                    "test", "test", new JobMetrics("marmaray"), dataFeedMetrics,
-                    reporters);
-
-            jobManager.addJobDag(jobDag);
-
             log.info("Running ingestion job");
-            try {
-                jobManager.run();
-                JobUtil.raiseExceptionIfStatusFailed(jobManager.getJobManagerStatus());
-            } catch (final Throwable t) {
-                if (TimeoutManager.getTimedOut()) {
-                    final LongMetric runTimeError = new LongMetric(DataFeedMetricNames.MARMARAY_JOB_ERROR, 1);
-                    runTimeError.addTags(metricTags);
-                    runTimeError.addTags(DataFeedMetricNames.getErrorModuleCauseTags(
-                            ModuleTagNames.JOB_MANAGER, ErrorCauseTagNames.TIME_OUT));
-                    reporters.report(runTimeError);
-                }
-                final LongMetric configError = new LongMetric(JobMetricNames.RUN_JOB_ERROR_COUNT, 1);
-                configError.addTags(metricTags);
-                reporters.report(configError);
-                throw t;
-            }
+            do {
+                // Sink
+                HoodieSinkDataConverter hoodieSinkDataConverter = new HoodieSinkDataConverter(conf, new ErrorExtractor(),
+                        hoodieConf);
+                final IMetadataManager metadataManager = initMetadataManager(hadoopConf, hoodieConf, jsc);
+                HoodieSink hoodieSink = new HoodieSink(hoodieConf, hadoopConf, hoodieSinkDataConverter, jsc,
+                        metadataManager, Optional.absent());
+
+                log.info("Initializing work unit calculator for job");
+                final IWorkUnitCalculator workUnitCalculator = new KafkaWorkUnitCalculator(kafkaSourceConf);
+
+                log.info("Initializing job dag");
+                final JobDag jobDag = new JobDag(kafkaSource, hoodieSink, metadataManager, workUnitCalculator,
+                        "test", "test", new JobMetrics("marmaray"), dataFeedMetrics,
+                        reporters);
+
+                jobManager.addJobDag(jobDag);
+                runJob(jobManager, reporters, metricTags);
+                jobManager.removeJobDag(jobDag);
+            } while (streamingConf.isEnabled);
+
             log.info("Ingestion job has been completed");
 
+        } catch (Exception e){
+            log.error(e.toString());
             final TimerMetric jobLatencyMetric =
                     new TimerMetric(JobMetricNames.RUN_JOB_DAG_LATENCY_MS, metricTags, jobStartTime);
             jobLatencyMetric.stop();
             reporters.report(jobLatencyMetric);
             reporters.finish();
         } finally {
-            jsc.stop();
+            sparkFactory.stop();
+        }
+    }
+
+    private void runJob(@NonNull final JobManager jobManager, @NonNull final Reporters reporters,
+                        @NonNull final Map<String, String> metricTags) {
+        try {
+            jobManager.run();
+            JobUtil.raiseExceptionIfStatusFailed(jobManager.getJobManagerStatus());
+        } catch (final Throwable t) {
+            if (TimeoutManager.getTimedOut()) {
+                final LongMetric runTimeError = new LongMetric(DataFeedMetricNames.MARMARAY_JOB_ERROR, 1);
+                runTimeError.addTags(metricTags);
+                runTimeError.addTags(DataFeedMetricNames.getErrorModuleCauseTags(
+                        ModuleTagNames.JOB_MANAGER, ErrorCauseTagNames.TIME_OUT));
+                reporters.report(runTimeError);
+            }
+            final LongMetric configError = new LongMetric(JobMetricNames.RUN_JOB_ERROR_COUNT, 1);
+            configError.addTags(metricTags);
+            reporters.report(configError);
+            throw t;
         }
     }
 
@@ -251,7 +243,6 @@ public class KafkaToHoodieJob {
             throw new JobRuntimeException(errorMessage, e);
         }
         return conf;
-
     }
 
     /**

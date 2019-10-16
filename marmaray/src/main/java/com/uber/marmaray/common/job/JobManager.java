@@ -267,6 +267,18 @@ public final class JobManager {
     }
 
     /**
+     * Remove {@link JobDag} to be executed on {@link #run()}
+     * @param jobDag JobDag to be added
+     */
+    public void removeJobDag(@NonNull final Dag jobDag) {
+        if (jobLockManager.lockDag(jobDag.getJobName(), jobDag.getDataFeedName())) {
+            this.jobDags.remove(jobDag);
+        } else {
+            log.warn("Failed to obtain lock for JobDag {} - {}", jobDag.getJobName(), jobDag.getDataFeedName());
+        }
+    }
+
+    /**
      * Add collection of {@link JobDag} to be executed on {@link #run()}
      * @param jobDags collection of JobDags to be added
      */
@@ -311,7 +323,7 @@ public final class JobManager {
                 log.error("Unable to save metadata: {}", e.getMessage());
             }
         }
-        this.sparkFactory.stop();
+//        this.sparkFactory.stop();
         this.jobLockManager.stop();
     }
 
