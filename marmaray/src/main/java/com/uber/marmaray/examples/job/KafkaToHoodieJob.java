@@ -139,26 +139,26 @@ public class KafkaToHoodieJob {
             final ISource kafkaSource = new KafkaSource(kafkaSourceConf, Optional.of(jsc), dataConverter,
                     Optional.absent(), Optional.absent());
 
+            // Sink
+            HoodieSinkDataConverter hoodieSinkDataConverter = new HoodieSinkDataConverter(conf, new ErrorExtractor(),
+                    hoodieConf);
+            final IMetadataManager metadataManager = initMetadataManager(hadoopConf, hoodieConf, jsc);
+            HoodieSink hoodieSink = new HoodieSink(hoodieConf, hadoopConf, hoodieSinkDataConverter, jsc,
+                    metadataManager, streamingConf.isEnabled, Optional.absent());
+
+            log.info("Initializing work unit calculator for job");
+            final IWorkUnitCalculator workUnitCalculator = new KafkaWorkUnitCalculator(kafkaSourceConf);
+
+            log.info("Initializing job dag");
+            final JobDag jobDag = new JobDag(kafkaSource, hoodieSink, metadataManager, workUnitCalculator,
+                    "test", "test", new JobMetrics("marmaray"), dataFeedMetrics,
+                    reporters);
+
+            jobManager.addJobDag(jobDag);
+
             log.info("Running ingestion job");
             do {
-                // Sink
-                HoodieSinkDataConverter hoodieSinkDataConverter = new HoodieSinkDataConverter(conf, new ErrorExtractor(),
-                        hoodieConf);
-                final IMetadataManager metadataManager = initMetadataManager(hadoopConf, hoodieConf, jsc);
-                HoodieSink hoodieSink = new HoodieSink(hoodieConf, hadoopConf, hoodieSinkDataConverter, jsc,
-                        metadataManager, Optional.absent());
-
-                log.info("Initializing work unit calculator for job");
-                final IWorkUnitCalculator workUnitCalculator = new KafkaWorkUnitCalculator(kafkaSourceConf);
-
-                log.info("Initializing job dag");
-                final JobDag jobDag = new JobDag(kafkaSource, hoodieSink, metadataManager, workUnitCalculator,
-                        "test", "test", new JobMetrics("marmaray"), dataFeedMetrics,
-                        reporters);
-
-                jobManager.addJobDag(jobDag);
                 runJob(jobManager, reporters, metricTags);
-                jobManager.removeJobDag(jobDag);
             } while (streamingConf.isEnabled);
 
             log.info("Ingestion job has been completed");
