@@ -76,7 +76,7 @@ public class KafkaToHoodieJob {
         final StreamingConfiguration streamingConf = new StreamingConfiguration(conf);
 
         final Reporters reporters = new Reporters();
-        reporters.addReporter(new ElasticsearchReporter("0.0.0.0", 9200, "marmaray_metrics"));
+        reporters.addReporter(new ConsoleReporter());
 
         final Map<String, String> metricTags = Collections.emptyMap();
         final DataFeedMetrics dataFeedMetrics = new DataFeedMetrics("catalog_name_job", metricTags);
