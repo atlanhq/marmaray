@@ -115,7 +115,7 @@ public final class JobManager {
         this.jobMetrics = new JobMetrics(appName);
         this.reporters = reporters;
         this.sparkFactory = sparkFactory;
-//        this.reporters.addReporter(new ConsoleReporter());
+        this.reporters.addReporter(new ConsoleReporter());
         this.jobLockManager = new JobLockManager(conf, frequency, shouldLockFrequency);
         this.postJobManagerActions = new JobDagActions(this.reporters, "jobManager");
         this.appId = sparkFactory.getSparkContext().sc().applicationId();
