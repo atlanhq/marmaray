@@ -28,7 +28,7 @@ import java.util.Map;
 public class ElasticsearchReporter implements IReporter<Metric> {
     final private String serverURL;
     final private int serverPort;
-    final private BulkRequest request;
+    private BulkRequest request;
     final private String indexName;
 
     public ElasticsearchReporter(@NonNull final String serverURL, @NonNull final int serverPort,
@@ -68,6 +68,7 @@ public class ElasticsearchReporter implements IReporter<Metric> {
                     }
                 }
             }
+            this.request = new BulkRequest();
             client.close();
         } catch (IOException e) {
             e.printStackTrace();

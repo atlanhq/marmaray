@@ -115,7 +115,7 @@ public final class JobManager {
         this.jobMetrics = new JobMetrics(appName);
         this.reporters = reporters;
         this.sparkFactory = sparkFactory;
-        this.reporters.addReporter(new ConsoleReporter());
+//        this.reporters.addReporter(new ConsoleReporter());
         this.jobLockManager = new JobLockManager(conf, frequency, shouldLockFrequency);
         this.postJobManagerActions = new JobDagActions(this.reporters, "jobManager");
         this.appId = sparkFactory.getSparkContext().sc().applicationId();
@@ -251,14 +251,15 @@ public final class JobManager {
                 }
             } finally {
                 this.postJobManagerActions.execute(isSuccess.get());
-                shutdown(!isSuccess.get());
+                resetManager(!isSuccess.get());
                 this.reporters.getReporters().forEach(IReporter::finish);
             }
         } while (streamingConf.isEnabled);
+        this.shutdown(false);
     }
 
     /**
-     * Add {@link JobDag} to be executed on {@link #run()}
+     * Add {@link JobDag} to be executed on
      * @param jobDag JobDag to be added
      */
     public void addJobDag(@NonNull final Dag jobDag) {
@@ -270,7 +271,7 @@ public final class JobManager {
     }
 
     /**
-     * Remove {@link JobDag} to be executed on {@link #run()}
+     * Remove {@link JobDag} to be executed on
      * @param jobDag JobDag to be added
      */
     public void removeJobDag(@NonNull final Dag jobDag) {
@@ -282,7 +283,7 @@ public final class JobManager {
     }
 
     /**
-     * Add collection of {@link JobDag} to be executed on {@link #run()}
+     * Add collection of {@link JobDag} to be executed on
      * @param jobDags collection of JobDags to be added
      */
     public void addJobDags(@NonNull final Collection<? extends JobDag> jobDags) {
@@ -315,19 +316,29 @@ public final class JobManager {
         }
     }
 
-    private void shutdown(final boolean forceShutdown) {
-        ThreadPoolService.shutdown(forceShutdown);
+    private void resetManager(final boolean forceReset) {
+        ThreadPoolService.shutdown(forceReset);
         if (this.isJobManagerMetadataEnabled()) {
             this.jobDags.forEach(jobDag -> this.getTracker().set(jobDag.getDataFeedName(),
-                jobDag.getJobManagerMetadata()));
+                    jobDag.getJobManagerMetadata()));
             try {
                 this.getTracker().writeJobManagerMetadata();
             } catch (MetadataException e) {
                 log.error("Unable to save metadata: {}", e.getMessage());
             }
         }
-//        this.sparkFactory.stop();
+
+        // Cleanup metrics
+        this.jobDags.forEach(dag -> dag.clean());
+        this.postJobManagerActions.reset();
+        this.jobLockManager.reset();
+        this.jobMetrics.clean();
+    }
+
+    public void shutdown(final boolean forceShutdown) {
+        this.resetManager(forceShutdown);
         this.jobLockManager.stop();
+        this.sparkFactory.stop();
     }
 
     private static void setSparkStageName(@NonNull final JavaSparkContext jsc, @NotEmpty final String dataFeedName) {
@@ -350,9 +361,9 @@ public final class JobManager {
         private final String jobFrequency;
 
         @NonNull
-        private final TimerMetric managerTimerMetric;
+        private TimerMetric managerTimerMetric;
         @NonNull
-        private final HashMap<String, TimerMetric> dagTimerMetricMap;
+        private HashMap<String, TimerMetric> dagTimerMetricMap;
 
         private JobLockManager(@NonNull final Configuration conf, @NotEmpty final String frequency,
                 final boolean shouldLockFrequency) {
@@ -396,8 +407,18 @@ public final class JobManager {
         private void stop() {
             log.info("Closing the LockManager in the JobManager.");
             this.lockManager.close();
+            this.reset();
+        }
+
+        private void reset() {
+            managerTimerMetric.stop();
             reporters.report(managerTimerMetric);
+            this.managerTimerMetric = new TimerMetric(JobMetricNames.JOB_MANAGER_LOCK_TIME_MS,
+                    ImmutableMap.of(JOB_FREQUENCY_TAG, jobFrequency,
+                            JOB_NAME_TAG, appName));
+
             dagTimerMetricMap.forEach((dagName, timerMetric) -> reporters.report(timerMetric));
+            this.dagTimerMetricMap = new HashMap<>();
         }
     }
 }

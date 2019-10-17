@@ -35,7 +35,7 @@ import java.util.Set;
 public class JobMetrics implements Reportable {
     private static final String METRIC_PREFIX = "job-";
     private static final String JOB_TAG = "job";
-    private final Set<Metric> metricSet = Sets.newHashSet();
+    private Set<Metric> metricSet = Sets.newHashSet();
     private final Map<String, String> baseTags;
     @NotEmpty
     private final String jobName;
@@ -71,5 +71,9 @@ public class JobMetrics implements Reportable {
     @Override
     public void gaugeAll(@NonNull final IReporter reporter) {
         metricSet.forEach(reporter::gauge);
+    }
+
+    public void clean() {
+        this.metricSet = Sets.newHashSet();
     }
 }

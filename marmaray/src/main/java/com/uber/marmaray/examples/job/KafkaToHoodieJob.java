@@ -13,6 +13,7 @@ import com.uber.marmaray.common.metadata.HoodieBasedMetadataManager;
 import com.uber.marmaray.common.metadata.IMetadataManager;
 import com.uber.marmaray.common.metrics.*;
 import com.uber.marmaray.common.reporters.ConsoleReporter;
+import com.uber.marmaray.common.reporters.ElasticsearchReporter;
 import com.uber.marmaray.common.reporters.Reporters;
 import com.uber.marmaray.common.schema.kafka.KafkaSchemaJSONServiceReader;
 import com.uber.marmaray.common.sinks.hoodie.HoodieSink;
@@ -75,10 +76,10 @@ public class KafkaToHoodieJob {
         final StreamingConfiguration streamingConf = new StreamingConfiguration(conf);
 
         final Reporters reporters = new Reporters();
-        reporters.addReporter(new ConsoleReporter());
+        reporters.addReporter(new ElasticsearchReporter("0.0.0.0", 9200, "marmaray_metrics"));
 
         final Map<String, String> metricTags = Collections.emptyMap();
-        final DataFeedMetrics dataFeedMetrics = new DataFeedMetrics("KafkaToHoodieJob", metricTags);
+        final DataFeedMetrics dataFeedMetrics = new DataFeedMetrics("catalog_name_job", metricTags);
 
         log.info("Initializing configurations for job");
         final TimerMetric confInitMetric = new TimerMetric(DataFeedMetricNames.INIT_CONFIG_LATENCY_MS,
@@ -90,7 +91,7 @@ public class KafkaToHoodieJob {
         try {
             hadoopConf = new HadoopConfiguration(conf);
             kafkaSourceConf = new KafkaSourceConfiguration(conf);
-            hoodieConf = new HoodieConfiguration(conf, "test_hoodie");
+            hoodieConf = new HoodieConfiguration(conf, "catalog_name");
         } catch (final Exception e) {
             final LongMetric configError = new LongMetric(DataFeedMetricNames.DISPERSAL_CONFIGURATION_INIT_ERRORS, 1);
             configError.addTags(metricTags);
@@ -151,8 +152,8 @@ public class KafkaToHoodieJob {
 
             log.info("Initializing job dag");
             final JobDag jobDag = new JobDag(kafkaSource, hoodieSink, metadataManager, workUnitCalculator,
-                    "test", "test", new JobMetrics("marmaray"), dataFeedMetrics,
-                    reporters);
+                    "catalog_name", "catalog_name", new JobMetrics("catalog_name"),
+                    dataFeedMetrics, reporters);
 
             jobManager.addJobDag(jobDag);
 
@@ -182,8 +183,6 @@ public class KafkaToHoodieJob {
             jobLatencyMetric.stop();
             reporters.report(jobLatencyMetric);
             reporters.finish();
-        } finally {
-            sparkFactory.stop();
         }
     }
 
