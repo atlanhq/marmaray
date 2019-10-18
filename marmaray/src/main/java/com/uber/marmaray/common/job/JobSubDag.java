@@ -127,6 +127,16 @@ public abstract class JobSubDag implements IMetricable {
     protected void commitNode() {
     }
 
+    public void clean() {
+        if (this.dataFeedMetrics.isPresent()) {
+            this.dataFeedMetrics.get().clean();
+        }
+
+        if (this.jobMetrics.isPresent()) {
+            this.jobMetrics.get().clean();
+        }
+    }
+
     /**
      * Called to retrieve payload for child dag.
      *

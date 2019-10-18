@@ -155,7 +155,7 @@ public class HoodieBasedMetadataManager implements IMetadataManager<StringValue>
      * commit and will save metadata information in it.
      */
     public void saveChanges() {
-        if (!this.saveChanges.compareAndSet(true, false)) {
+        if (!this.saveChanges.get()) {
             log.info("Metadata info is already saved. Not saving it again.");
             return;
         }

@@ -62,7 +62,7 @@ public final class JobDagActions {
     private static final String ACTION_TARGET = "action_target";
 
     @Getter
-    private final Queue<IJobDagAction> actions;
+    private Queue<IJobDagAction> actions;
     private final Reporters reporters;
 
     @Getter
@@ -76,6 +76,10 @@ public final class JobDagActions {
         this.actions = new ConcurrentLinkedDeque<>();
         this.target = target;
         this.reporters = reporters;
+    }
+
+    public void reset() {
+        this.actions = new ConcurrentLinkedDeque<>();
     }
 
     /**

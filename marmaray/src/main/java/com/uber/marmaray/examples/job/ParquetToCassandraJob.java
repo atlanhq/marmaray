@@ -23,11 +23,7 @@ import com.google.common.base.Optional;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import com.uber.marmaray.common.configuration.CassandraMetadataManagerConfiguration;
-import com.uber.marmaray.common.configuration.CassandraSinkConfiguration;
-import com.uber.marmaray.common.configuration.Configuration;
-import com.uber.marmaray.common.configuration.HiveConfiguration;
-import com.uber.marmaray.common.configuration.HiveSourceConfiguration;
+import com.uber.marmaray.common.configuration.*;
 import com.uber.marmaray.common.converters.data.CassandraSinkCQLDataConverter;
 import com.uber.marmaray.common.converters.data.CassandraSinkDataConverter;
 import com.uber.marmaray.common.converters.data.SparkSourceDataConverter;
@@ -113,6 +109,7 @@ public class ParquetToCassandraJob {
         final Instant jobStartTime = Instant.now();
 
         final Configuration conf = getConfiguration(args);
+        final StreamingConfiguration streamingConf = new StreamingConfiguration(conf);
 
         final Reporters reporters = new Reporters();
         reporters.addReporter(new ConsoleReporter());
@@ -286,7 +283,7 @@ public class ParquetToCassandraJob {
 
             log.info("Running dispersal job");
             try {
-                jobManager.run();
+                jobManager.run(streamingConf);
                 JobUtil.raiseExceptionIfStatusFailed(jobManager.getJobManagerStatus());
             } catch (final Throwable t) {
                 /*

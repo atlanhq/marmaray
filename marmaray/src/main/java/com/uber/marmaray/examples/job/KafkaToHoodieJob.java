@@ -3,10 +3,7 @@ package com.uber.marmaray.examples.job;
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.google.common.base.Optional;
-import com.uber.marmaray.common.configuration.Configuration;
-import com.uber.marmaray.common.configuration.HadoopConfiguration;
-import com.uber.marmaray.common.configuration.HoodieConfiguration;
-import com.uber.marmaray.common.configuration.KafkaSourceConfiguration;
+import com.uber.marmaray.common.configuration.*;
 import com.uber.marmaray.common.converters.data.HoodieSinkDataConverter;
 import com.uber.marmaray.common.converters.data.KafkaSourceDataConverter;
 import com.uber.marmaray.common.exceptions.JobRuntimeException;
@@ -75,12 +72,13 @@ public class KafkaToHoodieJob {
         final Instant jobStartTime = Instant.now();
 
         final Configuration conf = getConfiguration(args);
+        final StreamingConfiguration streamingConf = new StreamingConfiguration(conf);
 
         final Reporters reporters = new Reporters();
         reporters.addReporter(new ConsoleReporter());
 
         final Map<String, String> metricTags = Collections.emptyMap();
-        final DataFeedMetrics dataFeedMetrics = new DataFeedMetrics("KafkaToHoodieJob", metricTags);
+        final DataFeedMetrics dataFeedMetrics = new DataFeedMetrics("catalog_name_job", metricTags);
 
         log.info("Initializing configurations for job");
         final TimerMetric confInitMetric = new TimerMetric(DataFeedMetricNames.INIT_CONFIG_LATENCY_MS,
@@ -92,7 +90,7 @@ public class KafkaToHoodieJob {
         try {
             hadoopConf = new HadoopConfiguration(conf);
             kafkaSourceConf = new KafkaSourceConfiguration(conf);
-            hoodieConf = new HoodieConfiguration(conf, "test_hoodie");
+            hoodieConf = new HoodieConfiguration(conf, "catalog_name");
         } catch (final Exception e) {
             final LongMetric configError = new LongMetric(DataFeedMetricNames.DISPERSAL_CONFIGURATION_INIT_ERRORS, 1);
             configError.addTags(metricTags);
@@ -109,8 +107,7 @@ public class KafkaToHoodieJob {
         final TimerMetric convertSchemaLatencyMs =
                 new TimerMetric(DataFeedMetricNames.CONVERT_SCHEMA_LATENCY_MS, metricTags);
 
-        final String schema = "{\"namespace\": \"example.avro\", \"type\": \"record\", \"name\": \"Record\", \"fields\": [{\"name\": \"Region\", \"type\": \"string\"}, {\"name\": \"Country\", \"type\": \"string\"}] }";
-        final Schema outputSchema = new Schema.Parser().parse(schema);
+        final Schema outputSchema = new Schema.Parser().parse(hoodieConf.getHoodieWriteConfig().getSchema());
         convertSchemaLatencyMs.stop();
         reporters.report(convertSchemaLatencyMs);
 
@@ -125,22 +122,6 @@ public class KafkaToHoodieJob {
         final JavaSparkContext jsc = sparkFactory.getSparkContext();
 
         log.info("Initializing metadata manager for job");
-        final TimerMetric metadataManagerInitMetric =
-                new TimerMetric(DataFeedMetricNames.INIT_METADATAMANAGER_LATENCY_MS, metricTags);
-        final IMetadataManager metadataManager;
-        try {
-            metadataManager = initMetadataManager(hadoopConf, hoodieConf, jsc);
-        } catch (final JobRuntimeException e) {
-            final LongMetric configError = new LongMetric(DataFeedMetricNames.DISPERSAL_CONFIGURATION_INIT_ERRORS, 1);
-            configError.addTags(metricTags);
-            configError.addTags(DataFeedMetricNames
-                    .getErrorModuleCauseTags(ModuleTagNames.METADATA_MANAGER, ErrorCauseTagNames.CONFIG_ERROR));
-            reporters.report(configError);
-            reporters.getReporters().forEach(dataFeedMetrics::gauageFailureMetric);
-            throw e;
-        }
-        metadataManagerInitMetric.stop();
-        reporters.report(metadataManagerInitMetric);
 
         try {
             log.info("Initializing converters & schemas for job");
@@ -161,22 +142,22 @@ public class KafkaToHoodieJob {
             // Sink
             HoodieSinkDataConverter hoodieSinkDataConverter = new HoodieSinkDataConverter(conf, new ErrorExtractor(),
                     hoodieConf);
-            HoodieSink hoodieSink = new HoodieSink(hoodieConf, hadoopConf, hoodieSinkDataConverter, jsc, metadataManager,
-                    Optional.absent());
+            final IMetadataManager metadataManager = initMetadataManager(hadoopConf, hoodieConf, jsc);
+            HoodieSink hoodieSink = new HoodieSink(hoodieConf, hadoopConf, hoodieSinkDataConverter, jsc,
+                    metadataManager, streamingConf.isEnabled, Optional.absent());
 
             log.info("Initializing work unit calculator for job");
             final IWorkUnitCalculator workUnitCalculator = new KafkaWorkUnitCalculator(kafkaSourceConf);
 
             log.info("Initializing job dag");
             final JobDag jobDag = new JobDag(kafkaSource, hoodieSink, metadataManager, workUnitCalculator,
-                    "test", "test", new JobMetrics("marmaray"), dataFeedMetrics,
-                    reporters);
+                    "catalog_name", "catalog_name", new JobMetrics("catalog_name"),
+                    dataFeedMetrics, reporters);
 
             jobManager.addJobDag(jobDag);
 
-            log.info("Running ingestion job");
             try {
-                jobManager.run();
+                jobManager.run(streamingConf);
                 JobUtil.raiseExceptionIfStatusFailed(jobManager.getJobManagerStatus());
             } catch (final Throwable t) {
                 if (TimeoutManager.getTimedOut()) {
@@ -191,15 +172,16 @@ public class KafkaToHoodieJob {
                 reporters.report(configError);
                 throw t;
             }
+
             log.info("Ingestion job has been completed");
 
+        } catch (Exception e){
+            log.error(e.toString());
             final TimerMetric jobLatencyMetric =
                     new TimerMetric(JobMetricNames.RUN_JOB_DAG_LATENCY_MS, metricTags, jobStartTime);
             jobLatencyMetric.stop();
             reporters.report(jobLatencyMetric);
             reporters.finish();
-        } finally {
-            jsc.stop();
         }
     }
 
@@ -215,7 +197,10 @@ public class KafkaToHoodieJob {
             return getFileConfiguration(options.getConfFile());
         } else if (options.getJsonConf() != null) {
             return getJsonConfiguration(options.getJsonConf());
-        } else {
+        } else if (options.getJsonStringConf() != null) {
+            return getJsonStringConfiguration(options.getJsonStringConf());
+        }
+        else {
             throw new JobRuntimeException("Unable to find conf; this shouldn't be possible");
         }
     }
@@ -229,6 +214,18 @@ public class KafkaToHoodieJob {
     private Configuration getJsonConfiguration(@NotEmpty final String jsonConf) {
         final Configuration conf = new Configuration();
         conf.loadYamlStream(IOUtils.toInputStream(jsonConf), Optional.absent());
+        return conf;
+    }
+
+    /**
+     * Get configuration from JSON-based string
+     *
+     * @param jsonString JSON string
+     * @return configuration populated from it
+     */
+    private Configuration getJsonStringConfiguration(@NotEmpty final String jsonString) {
+        final Configuration conf = new Configuration();
+        conf.loadJSONString(jsonString, Optional.absent());
         return conf;
     }
 
@@ -251,7 +248,6 @@ public class KafkaToHoodieJob {
             throw new JobRuntimeException(errorMessage, e);
         }
         return conf;
-
     }
 
     /**
@@ -281,10 +277,14 @@ public class KafkaToHoodieJob {
         @Parameter(names = {"--jsonConfiguration", "-j"}, description = "json configuration")
         private String jsonConf;
 
+        @Getter
+        @Parameter(names = {"--jsonString", "-s"}, description = "json string")
+        private String jsonStringConf;
+
         private KafkaToHoodieCommandLineOptions(@NonNull final String[] args) {
             final JCommander commander = new JCommander(this);
             commander.parse(args);
-            Preconditions.checkState(this.confFile != null || this.jsonConf != null,
+            Preconditions.checkState(this.confFile != null || this.jsonConf != null || this.jsonStringConf != null,
                     "One of jsonConfiguration or configurationFile must be specified");
         }
     }

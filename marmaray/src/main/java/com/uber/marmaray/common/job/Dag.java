@@ -26,4 +26,5 @@ public abstract class Dag {
 
     public abstract IStatus execute();
 
+    public abstract void clean();
 }

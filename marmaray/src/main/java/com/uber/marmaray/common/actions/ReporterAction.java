@@ -36,8 +36,8 @@ public class ReporterAction implements IJobDagAction {
     @Getter
     private final Reporters reporters;
     @Getter
-    private final JobMetrics jobMetrics;
-    private final DataFeedMetrics dataFeedMetrics;
+    private JobMetrics jobMetrics;
+    private DataFeedMetrics dataFeedMetrics;
 
     @Override
     public boolean execute(final boolean success) {

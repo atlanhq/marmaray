@@ -247,9 +247,18 @@ public class KafkaWorkUnitCalculator implements IWorkUnitCalculator<OffsetRange,
                 pendingPartitions--;
             }
             if (numMsgsToBeSelected > 0) {
-                offsetRanges.add(OffsetRange.create(m.getTopicPartition(),
-                        partitionStartOffsets.get(m.getTopicPartition().partition()),
-                        partitionStartOffsets.get(m.getTopicPartition().partition()) + numMsgsToBeSelected));
+                long startOffset = partitionStartOffsets.get(m.getTopicPartition().partition());
+                long endOffset = startOffset + numMsgsToBeSelected;
+                if (endOffset > m.messages) {
+                    endOffset = m.messages;
+                }
+
+                // Check if there is any new data to be processed
+                if (startOffset == endOffset) {
+                    return new ArrayList<>();
+                }
+
+                offsetRanges.add(OffsetRange.create(m.getTopicPartition(), startOffset, endOffset));
             }
         }
         return offsetRanges;

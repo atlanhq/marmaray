@@ -211,6 +211,14 @@ public class JobDag<T, V extends AbstractValue, R extends IRunState<R>, C extend
         return status;
     }
 
+    @Override
+    public void clean() {
+        this.sinkDag.clean();
+        this.dataFeedMetrics.clean();
+        this.jobMetrics.clean();
+        this.postJobDagActions.reset();
+    }
+
     private void reportStatus(final boolean successful) {
         final long statusValue =
                 successful ? DataFeedMetricNames.RESULT_SUCCESS : DataFeedMetricNames.RESULT_FAILURE;

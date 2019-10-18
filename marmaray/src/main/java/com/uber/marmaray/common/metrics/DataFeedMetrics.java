@@ -44,10 +44,10 @@ public class DataFeedMetrics implements Reportable, Serializable {
     private static final String JOB_TAG = "job";
 
     @Getter
-    private final Set<Metric> metricSet = Sets.newHashSet();
+    private Set<Metric> metricSet = Sets.newHashSet();
 
     @Getter
-    private final Set<Metric> failureMetricSet = Sets.newHashSet();
+    private Set<Metric> failureMetricSet = Sets.newHashSet();
 
     private final Map<String, String> baseTags;
 
@@ -127,5 +127,10 @@ public class DataFeedMetrics implements Reportable, Serializable {
     public void gaugeAll(final IReporter reporter) {
         guageNonFailureMetric(reporter);
         gauageFailureMetric(reporter);
+    }
+
+    public void clean() {
+        this.failureMetricSet = Sets.newHashSet();
+        this.metricSet = Sets.newHashSet();
     }
 }
