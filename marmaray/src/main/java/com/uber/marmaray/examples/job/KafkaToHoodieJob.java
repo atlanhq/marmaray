@@ -13,7 +13,6 @@ import com.uber.marmaray.common.metadata.HoodieBasedMetadataManager;
 import com.uber.marmaray.common.metadata.IMetadataManager;
 import com.uber.marmaray.common.metrics.*;
 import com.uber.marmaray.common.reporters.ConsoleReporter;
-import com.uber.marmaray.common.reporters.ElasticsearchReporter;
 import com.uber.marmaray.common.reporters.Reporters;
 import com.uber.marmaray.common.schema.kafka.KafkaSchemaJSONServiceReader;
 import com.uber.marmaray.common.sinks.hoodie.HoodieSink;
@@ -198,7 +197,10 @@ public class KafkaToHoodieJob {
             return getFileConfiguration(options.getConfFile());
         } else if (options.getJsonConf() != null) {
             return getJsonConfiguration(options.getJsonConf());
-        } else {
+        } else if (options.getJsonStringConf() != null) {
+            return getJsonStringConfiguration(options.getJsonStringConf());
+        }
+        else {
             throw new JobRuntimeException("Unable to find conf; this shouldn't be possible");
         }
     }
@@ -212,6 +214,18 @@ public class KafkaToHoodieJob {
     private Configuration getJsonConfiguration(@NotEmpty final String jsonConf) {
         final Configuration conf = new Configuration();
         conf.loadYamlStream(IOUtils.toInputStream(jsonConf), Optional.absent());
+        return conf;
+    }
+
+    /**
+     * Get configuration from JSON-based string
+     *
+     * @param jsonString JSON string
+     * @return configuration populated from it
+     */
+    private Configuration getJsonStringConfiguration(@NotEmpty final String jsonString) {
+        final Configuration conf = new Configuration();
+        conf.loadJSONString(jsonString, Optional.absent());
         return conf;
     }
 
@@ -263,10 +277,14 @@ public class KafkaToHoodieJob {
         @Parameter(names = {"--jsonConfiguration", "-j"}, description = "json configuration")
         private String jsonConf;
 
+        @Getter
+        @Parameter(names = {"--jsonString", "-s"}, description = "json string")
+        private String jsonStringConf;
+
         private KafkaToHoodieCommandLineOptions(@NonNull final String[] args) {
             final JCommander commander = new JCommander(this);
             commander.parse(args);
-            Preconditions.checkState(this.confFile != null || this.jsonConf != null,
+            Preconditions.checkState(this.confFile != null || this.jsonConf != null || this.jsonStringConf != null,
                     "One of jsonConfiguration or configurationFile must be specified");
         }
     }

@@ -16,6 +16,7 @@
  */
 package com.uber.marmaray.common.configuration;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
@@ -112,6 +113,19 @@ public class Configuration implements Serializable {
             parseConfigJson(scopeOverriddenJsonNode, "");
         } catch (IOException e) {
             final String errorMsg = "Error loading config from stream";
+            log.error(errorMsg, e);
+            throw new JobRuntimeException(errorMsg, e);
+        }
+    }
+
+    public void loadJSONString(@NonNull final String jsonString, @NonNull final Optional<String> scope) {
+        try {
+            final ObjectMapper mapper = new ObjectMapper();
+            final JsonNode jsonNode = mapper.readTree(jsonString);
+            final JsonNode scopeOverriddenJsonNode = handleScopeOverriding(scope, jsonNode);
+            parseConfigJson(scopeOverriddenJsonNode, "");
+        } catch (IOException e) {
+            final String errorMsg = "Error loading config from string";
             log.error(errorMsg, e);
             throw new JobRuntimeException(errorMsg, e);
         }
